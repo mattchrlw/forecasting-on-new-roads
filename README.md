@@ -1,3 +1,7 @@
+# Fork
+
+This is a fork of the original repository.
+
 # Traffic Forecasting on New Roads Using Spatial Contrastive Pre-Training (SCPT)
 
 ![Visual_abstract](/vizabs2.png) Our novel traffic forecasting framework, Spatial Contrastive Pre-Training (SCPT), enables accurate forecasts on new roads (orange) that were not seen during training.
@@ -64,11 +68,9 @@ METRLA `# 6: dataset` \
 
 # Cite
 
-
 ```
 Prabowo, A., Xue, H., Shao, W. et al. Traffic forecasting on new roads using spatial contrastive pre-training (SCPT). Data Min Knowl Disc (2023). https://doi.org/10.1007/s10618-023-00982-0
 ```
-
 
 BibTex:
 

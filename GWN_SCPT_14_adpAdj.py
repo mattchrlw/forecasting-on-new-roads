@@ -322,6 +322,7 @@ class Geometric_Encoder(nn.Module):
         self.temperature = temperature
         self.fc1 = torch.nn.Linear(4, 320)
         self.fc2 = torch.nn.Linear(320, 32)
+        # this is a tuple (Q, nearest_node, clusters, gdf_nodes, gdf_edges)
         self.graph = generate_quotient_graph()
 
     def forward(self, x):
@@ -333,8 +334,7 @@ class Geometric_Encoder(nn.Module):
 
     def contrast(self, x):
         # generate graphs
-        Q1, Q2 = generate_graphs(self.graph.Q, self.graph.nearest_node, \
-            self.graph.clusters, self.graph.gdf_nodes, self.graph.gdf_edges)
+        Q1, Q2 = generate_graphs(*self.graph)
 
         source_node = random.choice(list(self.graph.nearest_node.keys()))
         H1 = bfs_tree(Q1, source=source_node, depth_limit=5)

@@ -13,6 +13,7 @@ from scipy.sparse.linalg import eigs
 import numpy as np
 import pandas as pd
 from Utils import load_pickle
+from graph import generate_quotient_graph, generate_graphs
 
 class nconv(nn.Module):
     def __init__(self):

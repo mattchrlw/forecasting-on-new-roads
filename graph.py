@@ -314,6 +314,7 @@ gdf_nodes: GDF with node features
 gdf_edges: GDF with edge features
 """
 def generate_quotient_graph():
+    metr_la = load_metr_la()
     traffic, gdf_nodes, gdf_edges = load_osm(metr_la)
     nearest_node = find_matching(metr_la, traffic)
     Q, clusters = quotient_graph(traffic, nearest_node, gdf_nodes)

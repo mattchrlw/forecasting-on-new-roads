@@ -337,7 +337,7 @@ class Geometric_Encoder(nn.Module):
         # generate graphs
         Q1, Q2 = generate_graphs(*self.graph)
 
-        source_node = random.choice(list(self.graph.nearest_node.keys()))
+        source_node = random.choice(list(self.graph[0].keys()))
         H1 = bfs_tree(Q1, source=source_node, depth_limit=5)
         H2 = bfs_tree(Q2, source=source_node, depth_limit=5)
         print(H1, H2)

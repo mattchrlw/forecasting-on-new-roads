@@ -328,7 +328,8 @@ class Geometric_Encoder(nn.Module):
         self.graph = generate_quotient_graph()
 
     def forward(self, x):
-
+        # todo: how do i make this more efficient?
+        print(list(map(lambda x: [[x[1]['x'], x[1]['y'], x[1]['lanes'], x[1]['speed_kph']]], x.nodes(data=True))))
         # sample the graph *once* here, feed the output graph as input here into generation
         x = self.fc1(x)
         x = F.relu(x)
@@ -338,11 +339,12 @@ class Geometric_Encoder(nn.Module):
     def contrast(self, x):
         # generate graphs
         Q1, Q2 = generate_graphs(*self.graph)
-        print(Q1.nodes)
+
+        print(Q1.nodes(data=True))
 
         source_node = random.choice(list(self.graph[1].keys()))
-        H1 = bfs_tree(Q1, source=source_node, depth_limit=5)
-        H2 = bfs_tree(Q2, source=source_node, depth_limit=5)
+        H1 = Q1.subgraph(bfs_tree(Q1, source=source_node, depth_limit=5))
+        H2 = Q2.subgraph(bfs_tree(Q2, source=source_node, depth_limit=5))
         print(H1, H2)
 
         # project

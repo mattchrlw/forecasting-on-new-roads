@@ -12,6 +12,7 @@ import Metrics
 # import Utils
 from GWN_SCPT_14_adpAdj import *
 import unseen_nodes
+from graph import generate_adjacency
 
 class StandardScaler:
     def __init__(self):
@@ -43,6 +44,10 @@ def getXSYS(data, mode):
     return XS, YS
 
 def setups():
+    adj, gdf_nodes, gdf_edges, G, clusters, nearest_node, Q1, Q2 = generate_adjacency("rbf-osm")
+    print("GENERATING ADJACENCY")
+    print(adj, gdf_nodes, gdf_edges, G, clusters, nearest_node, Q1, Q2)
+
     # make save folder
     if not os.path.exists(P.PATH):
         os.makedirs(P.PATH)

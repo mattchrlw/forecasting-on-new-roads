@@ -156,7 +156,8 @@ def pre_evaluateModel(model, data_iter):
 
 def pretrainModel(name, mode, pretrain_iter, preval_iter):
     print('pretrainModel Started ...', time.ctime())
-    model = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
+    # model = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
+    model = Geometric_Encoder(P.TEMPERATURE).to(device)
     min_val_loss = np.inf
     optimizer = torch.optim.Adam(model.parameters(), lr=P.LEARN, weight_decay=P.weight_decay)
     s_time = datetime.now()
@@ -226,7 +227,8 @@ def trainModel(name, mode,
     s_time = datetime.now()
     print('Model Training Started ...', s_time)
     if P.IS_PRETRN:
-        encoder = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
+        # encoder = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
+        encoder = Geometric_Encoder(P.TEMPERATURE).to(device)
         encoder.eval()
         with torch.no_grad():
             encoder.load_state_dict(torch.load(P.PATH+ '/' + 'encoder' + '.pt'))
@@ -296,7 +298,8 @@ def testModel(name, mode, test_iter, adj_tst, spatialsplit):
     print('Model Testing', mode, 'Started ...', time.ctime())
     print('TIMESTEP_IN, TIMESTEP_OUT', P.TIMESTEP_IN, P.TIMESTEP_OUT)
     if P.IS_PRETRN:
-        encoder = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
+        # encoder = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
+        encoder = Geometric_Encoder(P.TEMPERATURE).to(device)
         encoder.load_state_dict(torch.load(P.PATH+ '/' + 'encoder' + '.pt'))
         encoder.eval()
     model = getModel(name, device)

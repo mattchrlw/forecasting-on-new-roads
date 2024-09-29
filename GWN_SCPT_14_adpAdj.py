@@ -314,13 +314,14 @@ def nt_xent_loss(out_1, out_2, temperature):
 
     return loss
 
+# This won't work yet, just seeing what fails
 class Geometric_Encoder(nn.Module):
     def __init__(self, temperature=1):
         super().__init__()
         self.temperature = temperature
         self.fc1 = torch.nn.Linear(4, 320)
         self.fc2 = torch.nn.Linear(320, 32)
-        pass
+        self.graph = generate_quotient_graph()
 
     def forward(self, x):
         # sample the graph *once* here, feed the output graph as input here into generation
@@ -330,9 +331,18 @@ class Geometric_Encoder(nn.Module):
         return x
 
     def contrast(self, x):
+        # generate graphs
+        Q1, Q2 = generate_graphs(self.graph.Q, self.graph.nearest_node, \
+            self.graph.clusters, self.graph.gdf_nodes, self.graph.gdf_edges)
+
+        source_node = random.choice(list(self.graph.nearest_node.keys()))
+        H1 = bfs_tree(Q1, source=source_node, depth_limit=5)
+        H2 = bfs_tree(Q2, source=source_node, depth_limit=5)
+        print(H1, H2)
+
         # project
-        x1 = self(x)
-        x2 = self(x)
+        x1 = self(H1)
+        x2 = self(H2)
         x1 = self.fc2(x1)
         x2 = self.fc2(x2)
         # L2 norm

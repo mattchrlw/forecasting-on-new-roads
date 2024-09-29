@@ -266,8 +266,6 @@ def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges):
 
     Q1, Q2 = Q.copy(), Q.copy()
 
-    # pprint(Q1.nodes(data=True))
-
     nx.set_node_attributes(Q1, coordinates_1)
     nx.set_node_attributes(Q2, coordinates_2)
 
@@ -305,6 +303,30 @@ def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges):
     # plt.tight_layout()
     # plt.scatter(*zip(*coordinates_2 ))
     # fig.savefig(f"coordinates_2.png")
+
+"""
+Generates the quotient graph.
+
+Q: final networkx graph
+nearest_node: mapping between traffic node and nearest OSM node
+clusters: clusters of OSM nodes based on traffic node
+gdf_nodes: GDF with node features
+gdf_edges: GDF with edge features
+"""
+def generate_quotient_graph():
+    traffic, gdf_nodes, gdf_edges = load_osm(metr_la)
+    nearest_node = find_matching(metr_la, traffic)
+    Q, clusters = quotient_graph(traffic, nearest_node, gdf_nodes)
+    Q = relabel_graph(Q, nearest_node, clusters)
+
+    return Q, nearest_node, clusters, gdf_nodes, gdf_edges
+
+"""
+Generate a subgraph pair.
+"""
+def generate_subgraph_pair(Q, nearest_node, clusters, gdf_nodes, gdf_edges):
+    Q1, Q2 = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges)
+    
 
 """
 Generates an adjacency matrix.

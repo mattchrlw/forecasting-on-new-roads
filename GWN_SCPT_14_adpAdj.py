@@ -1,6 +1,7 @@
 '''
 GraphWaveNet.py
 '''
+import random
 import sys
 import math
 import torch

@@ -328,6 +328,7 @@ class Geometric_Encoder(nn.Module):
         self.graph = generate_quotient_graph()
 
     def forward(self, x):
+
         # sample the graph *once* here, feed the output graph as input here into generation
         x = self.fc1(x)
         x = F.relu(x)
@@ -337,6 +338,7 @@ class Geometric_Encoder(nn.Module):
     def contrast(self, x):
         # generate graphs
         Q1, Q2 = generate_graphs(*self.graph)
+        print(Q1.nodes)
 
         source_node = random.choice(list(self.graph[1].keys()))
         H1 = bfs_tree(Q1, source=source_node, depth_limit=5)

@@ -314,6 +314,33 @@ def nt_xent_loss(out_1, out_2, temperature):
 
     return loss
 
+class Geometric_Encoder(nn.Module):
+    def __init__(self, temperature=1):
+        super().__init__()
+        self.temperature = temperature
+        self.fc1 = torch.nn.Linear(4, 320)
+        self.fc2 = torch.nn.Linear(320, 32)
+        pass
+
+    def forward(self, x):
+        # sample the graph *once* here, feed the output graph as input here into generation
+        x = self.fc1(x)
+        x = F.relu(x)
+        x = self.fc2(x)
+        return x
+
+    def contrast(self, x):
+        # project
+        x1 = self(x)
+        x2 = self(x)
+        x1 = self.fc2(x1)
+        x2 = self.fc2(x2)
+        # L2 norm
+        x1 = F.normalize(x1)
+        x2 = F.normalize(x2)
+        # calculate loss
+        return nt_xent_loss(x1,x2,self.temperature)
+
 class Contrastive_FeatureExtractor_conv(nn.Module):
     def __init__(self, temperature=1):
         super().__init__()

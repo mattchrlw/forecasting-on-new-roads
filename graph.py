@@ -322,13 +322,6 @@ def generate_quotient_graph():
     return Q, nearest_node, clusters, gdf_nodes, gdf_edges
 
 """
-Generate a subgraph pair.
-"""
-def generate_subgraph_pair(Q, nearest_node, clusters, gdf_nodes, gdf_edges):
-    Q1, Q2 = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges)
-    
-
-"""
 Generates an adjacency matrix.
 """
 def generate_adjacency(mode):

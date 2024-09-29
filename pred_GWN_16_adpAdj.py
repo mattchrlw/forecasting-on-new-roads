@@ -12,7 +12,7 @@ import Metrics
 # import Utils
 from GWN_SCPT_14_adpAdj import *
 import unseen_nodes
-from graph import generate_adjacency
+from graph import generate_adjacency, generate_quotient_graph, generate_graphs
 
 class StandardScaler:
     def __init__(self):

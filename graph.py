@@ -13,6 +13,8 @@ import argparse
 import time
 import pandas as pd
 import random
+import torch
+from sklearn.preprocessing import MinMaxScaler
 
 MODES = ['identity', 'rbf', 'rbf-osm', 'osm', 'osm-length', 'osm-length-speed']
 
@@ -251,9 +253,14 @@ def generate_length_matrix(metr_la, adj, gdf_edges, nearest_node, poly, speed=Fa
 """
 Generates a "pair" of graphs from one graph.
 """
-def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges):
-    partition_1 = {k: random.choice(clusters[v]) for k, v in nearest_node.items()}
-    partition_2 = {k: random.choice(clusters[v]) for k, v in nearest_node.items()}
+def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=False):
+    # hacky but it works
+    if nearest:
+        partition_1 = nearest_node
+        partition_2 = partition_1
+    else:
+        partition_1 = {k: random.choice(clusters[v]) for k, v in nearest_node.items()}
+        partition_2 = {k: random.choice(clusters[v]) for k, v in nearest_node.items()}
 
     coordinates_1 = {k: {
         'x': gdf_nodes.loc[v]['x'], 
@@ -303,6 +310,15 @@ def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges):
     # plt.tight_layout()
     # plt.scatter(*zip(*coordinates_2 ))
     # fig.savefig(f"coordinates_2.png")
+
+"""
+Extract features.
+"""
+def feature_extract(G):
+    return torch.tensor(list(map(
+        lambda x: [x[1]['x'], x[1]['y'], x[1]['lanes'], x[1]['speed_kph']], 
+        G.nodes(data=True)))
+    )
 
 """
 Generates the quotient graph.
@@ -361,6 +377,14 @@ def generate_adjacency(mode):
         adj = matrix
 
     return adj, gdf_nodes, gdf_edges, Q, clusters, nearest_node, Q1, Q2
+
+"""
+Define a subgraph. Take a 40 node deterministic BFS
+"""
+def subgraph(G, root):
+    edges = nx.bfs_edges(G, root)
+    nodes = ([root] + [v for u, v in edges])[:40]
+    return G.subgraph(nodes)
 
 if __name__ == "__main__":
     start = time.time()

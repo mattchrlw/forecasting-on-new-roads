@@ -152,6 +152,11 @@ def pre_evaluateModel(model, data_iter):
 def pretrainModel(name, mode, pretrain_iter, preval_iter):
     print('pretrainModel Started ...', time.ctime())
     model = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
+    # graph stuff
+    # Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
+    # Q1, Q2 = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges)
+    # model = Geometric_Encoder(P.TEMPERATURE, Q1, Q2)
+
     min_val_loss = np.inf
     optimizer = torch.optim.Adam(model.parameters(), lr=P.LEARN, weight_decay=P.weight_decay)
     s_time = datetime.now()
@@ -161,6 +166,9 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
         model.train()
         for x in pretrain_iter:
             optimizer.zero_grad()
+            # pretrain iter 1 = 
+            # pretrain iter 2 = 
+            # loss = model.contrast(pretrain_iter1, pretrain_iter2)
             loss = model.contrast(x[0].to(device))
             loss.backward()
             optimizer.step()

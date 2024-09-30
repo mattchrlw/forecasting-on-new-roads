@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 from Utils import load_pickle
 from graph import generate_quotient_graph, generate_graphs
+from torch_geometric.nn import GCNConv
 
 class nconv(nn.Module):
     def __init__(self):
@@ -317,45 +318,29 @@ def nt_xent_loss(out_1, out_2, temperature):
 
     return loss
 
-# This won't work yet, just seeing what fails
-class Geometric_Encoder(nn.Module):
-    def __init__(self, temperature=1):
-        super().__init__()
-        self.temperature = temperature
-        self.fc1 = torch.nn.Linear(4, 320)
-        self.fc2 = torch.nn.Linear(320, 32)
-        # this is a tuple (Q, nearest_node, clusters, gdf_nodes, gdf_edges)
-        self.graph = generate_quotient_graph()
 
-    def feature_extract(self, G):
-        return torch.tensor(list(map(lambda x: [x[1]['x'], x[1]['y'], x[1]['lanes'], x[1]['speed_kph']], G.nodes(data=True))))
+class Geometric_Encoder(nn.Module):
+    def __init__(self, model, temperature):
+        super().__init__()
+        self.model = model
+        self.temperature = temperature
+        self.fc1 = GCNConv(4, 320)
+        self.fc2 = GCNConv(320, 32)
 
     def forward(self, x):
-        t = self.feature_extract(x)
-        x = t.to(x.device)
         x = self.fc1(x)
         x = F.relu(x)
         x = self.fc2(x)
         return x
 
-    def contrast(self, x):
-        # generate graphs
-        Q1, Q2 = generate_graphs(*self.graph)
-        print(Q1.nodes(data=True))
-        # sample subgraphs
-        source_node = random.choice(list(self.graph[1].keys()))
-        H1 = Q1.subgraph(bfs_tree(Q1, source=source_node, depth_limit=5))
-        H2 = Q2.subgraph(bfs_tree(Q2, source=source_node, depth_limit=5))
-        # project
-        x1 = self(H1)
-        x2 = self(H2)
-        x1 = self.fc2(x1)
-        x2 = self.fc2(x2)
+    def contrast(self, x1, x2):
+        x1 = self(x1)
+        x2 = self(x2)
         # L2 norm
         x1 = F.normalize(x1)
         x2 = F.normalize(x2)
         # calculate loss
-        return nt_xent_loss(x1,x2,self.temperature)
+        return nt_xent_loss(x1, x2, self.temperature)
 
 class Contrastive_FeatureExtractor_conv(nn.Module):
     def __init__(self, temperature=1):

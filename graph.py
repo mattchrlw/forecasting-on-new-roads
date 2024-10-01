@@ -254,7 +254,7 @@ def generate_length_matrix(metr_la, adj, gdf_edges, nearest_node, poly, speed=Fa
 Generates a "pair" of graphs from one graph.
 """
 def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=False):
-    # hacky but it works
+    print("generate_graphs nearest", nearest)
     if nearest:
         partition_1 = nearest_node
         partition_2 = partition_1
@@ -272,6 +272,16 @@ def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=Fal
     } for k, v in partition_2.items()}
 
     Q1, Q2 = Q.copy(), Q.copy()
+
+    for (_, d) in Q1.nodes(data=True):
+        d.clear()
+    for (_, d) in Q2.nodes(data=True):
+        d.clear()
+
+    for (_, _, d) in Q1.edges(data=True):
+        d.clear()
+    for (_, _, d) in Q2.edges(data=True):
+        d.clear()
 
     nx.set_node_attributes(Q1, coordinates_1)
     nx.set_node_attributes(Q2, coordinates_2)
@@ -295,6 +305,13 @@ def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=Fal
             v_side_edges = gdf_edges.xs(v, level='v')
             Q2.nodes[k]['lanes'] = _max_with_lists(v_side_edges['lanes'].values)
             Q2.nodes[k]["speed_kph"] = random.choice(v_side_edges['speed_kph'].values)
+
+    attributes = set()
+    for _, d in Q1.nodes(data=True):
+        attributes.update(d.keys())
+    for _, d in Q2.nodes(data=True):
+        attributes.update(d.keys())
+    print("THE ATTRIBUTES ARE", attributes)
 
     # TODO: scaling the coordinates...
     # nx.add_edge_lengths(Q1.nodes[])

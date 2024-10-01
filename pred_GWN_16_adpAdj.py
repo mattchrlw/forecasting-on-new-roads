@@ -12,8 +12,9 @@ import Metrics
 # import Utils
 from GWN_SCPT_14_adpAdj import *
 import unseen_nodes
-from graph import generate_quotient_graph, generate_graphs, feature_extract
+from graph import generate_quotient_graph, generate_graphs, feature_extract, load_metr_la
 from torch_geometric.utils.convert import from_networkx
+import random
 
 class StandardScaler:
     def __init__(self):
@@ -125,15 +126,10 @@ def setups():
     print('adj_tst_u', len(adj_tst_u), adj_tst_u[0].shape, adj_tst_u[1].shape)
     print('adj_tst_a', len(adj_tst_a), adj_tst_a[0].shape, adj_tst_a[1].shape)
     # PRETRAIN data loader
-    pretrn_iter = torch.utils.data.DataLoader(
-        torch.utils.data.TensorDataset(
-            XS_torch_train[:,-1,:,0].T), P.BATCHSIZE, shuffle=True)
-    preval_iter = torch.utils.data.DataLoader(
-        torch.utils.data.TensorDataset(
-            torch.tensor(trainYS[:,-1,spatialSplit_unseen.i_val,0]).T.float()),
-        P.BATCHSIZE, shuffle=False)
-    print('pretrn_iter.dataset.tensors[0].shape', pretrn_iter.dataset.tensors[0].shape)
-    print('preval_iter.dataset.tensors[0].shape', preval_iter.dataset.tensors[0].shape)
+    pretrn_iter = [random.sample(list(spatialSplit_unseen.i_trn), P.BATCHSIZE) for _ in range(10)]
+    preval_iter = [list(spatialSplit_unseen.i_val)]
+    # print('pretrn_iter.dataset.tensors[0].shape', pretrn_iter.dataset.tensors[0].shape)
+    # print('preval_iter.dataset.tensors[0].shape', preval_iter.dataset.tensors[0].shape)
     # print
     for k, v in vars(P).items():
         print(k,v)
@@ -141,14 +137,20 @@ def setups():
         train_iter, val_u_iter, val_a_iter, tst_u_iter, tst_a_iter, \
         adj_train, adj_val_u, adj_val_a, adj_tst_u, adj_tst_a
 
-def pre_evaluateModel(model, data_iter):
+def pre_evaluateModel(model, data_iter, Q1, Q2):
     model.eval()
     l_sum, n = 0.0, 0
     with torch.no_grad():
         for x in data_iter:
-            l = model.contrast(x[0].to(device))
-            l_sum += l.item() * x[0].shape[0]
-            n += x[0].shape[0]
+            metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
+            indices = list(map(lambda k: metr_la_keys[k], x))
+            Q1_s = Q1.subgraph(indices).copy()
+            Q2_s = Q2.subgraph(indices).copy()
+            fQ1, fQ2 = feature_extract(Q1_s).float(), feature_extract(Q2_s).float() # 64x4 tensor
+            nQ1, nQ2 = from_networkx(Q1_s), from_networkx(Q2_s)
+            l = model.contrast(fQ1, fQ2, nQ1.edge_index, nQ2.edge_index)
+            l_sum += l.item() * len(x)
+            n += len(x)
         return l_sum / n
 
 def pretrainModel(name, mode, pretrain_iter, preval_iter):
@@ -163,8 +165,6 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
         # unseen stuff goes here
         Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
         Q1, Q2 = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges) # gives 2 networkx graphs 
-        nQ1, nQ2 = from_networkx(Q1), from_networkx(Q2)
-        fQ1, fQ2 = feature_extract(Q1), feature_extract(Q2) # 207x4 tensor
         starttime = datetime.now()
         loss_sum, n = 0.0, 0
         model.train()
@@ -172,20 +172,27 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
         # this should now be the features for BATCH_SIZE nodes (all features)
         # slice the 207x4 feature matrix into a BATCH_SIZEx4 feature matrix
         for x in pretrain_iter:
+            metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
+            indices = list(map(lambda k: metr_la_keys[k], x))
+            Q1_s = Q1.subgraph(indices).copy()
+            Q2_s = Q2.subgraph(indices).copy()
+            # print(Q1, Q1_s, Q2, Q2_s)
+            fQ1, fQ2 = feature_extract(Q1_s).float(), feature_extract(Q2_s).float() # 64x4 tensor
+            nQ1, nQ2 = from_networkx(Q1_s), from_networkx(Q2_s)
+            # print(fQ1, fQ2)
+            # print(nQ1, nQ2)
             # x = [0, 15, 32, 79]
             # fQ1[x] = [[0.7, 0.3, 0.8, 0.5], [0.6, 0.3, 0.8, 0.5], ...] [64 x 4]
             optimizer.zero_grad()
-            pretrain_iter1 = fQ1[x] 
             # loss = model.contrast([0.7, 0.3, 0.8, 0.5], [0.7, 0.3, 0.8, 0.5])
-            pretrain_iter2 = fQ2[x]
-            loss = model.contrast(pretrain_iter1, pretrain_iter2, nQ1.edge_index, nQ2.edge_index)
+            loss = model.contrast(fQ1, fQ2, nQ1.edge_index, nQ2.edge_index)
             # loss = model.contrast(x[0].to(device))
             loss.backward()
             optimizer.step()
-            loss_sum += loss.item() * x[0].shape[0]
-            n += x[0].shape[0]
+            loss_sum += loss.item() * len(x)
+            n += len(x)
         train_loss = loss_sum / n
-        val_loss = pre_evaluateModel(model, preval_iter)
+        val_loss = pre_evaluateModel(model, preval_iter, Q1, Q2)
         if val_loss < min_val_loss:
             min_val_loss = val_loss
             torch.save(model.state_dict(), P.PATH + '/' + name + '.pt')
@@ -476,7 +483,7 @@ def main():
 
     if P.IS_PRETRN:
         print(P.KEYWORD, 'pretraining started', time.ctime())
-        pretrainModel('encoder', 'pretrain', spatialSplit_unseen.i_trn, spatialSplit_unseen.i_val)
+        pretrainModel('encoder', 'pretrain', pretrn_iter, preval_iter)
     else:
         print(P.KEYWORD, 'No pre-training')
 

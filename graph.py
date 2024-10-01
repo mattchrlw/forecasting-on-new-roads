@@ -296,6 +296,9 @@ def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=Fal
             Q2.nodes[k]['lanes'] = _max_with_lists(v_side_edges['lanes'].values)
             Q2.nodes[k]["speed_kph"] = random.choice(v_side_edges['speed_kph'].values)
 
+    # TODO: scaling the coordinates...
+    # nx.add_edge_lengths(Q1.nodes[])
+
     return Q1, Q2
     # pprint(Q1)
 
@@ -331,6 +334,12 @@ gdf_edges: GDF with edge features
 """
 def generate_quotient_graph():
     metr_la = load_metr_la()
+    # {id: (x, y)}
+    # generate more: 
+    # metr_la = load_metr_la()
+    # generate unseen nodes between???
+    # more_metr_la = more(metr_la)
+    #
     traffic, gdf_nodes, gdf_edges = load_osm(metr_la)
     nearest_node = find_matching(metr_la, traffic)
     Q, clusters = quotient_graph(traffic, nearest_node, gdf_nodes)

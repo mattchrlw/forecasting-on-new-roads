@@ -151,25 +151,32 @@ def pre_evaluateModel(model, data_iter):
 
 def pretrainModel(name, mode, pretrain_iter, preval_iter):
     print('pretrainModel Started ...', time.ctime())
-    model = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
-    # graph stuff
-    # Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
-    # Q1, Q2 = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges)
-    # model = Geometric_Encoder(P.TEMPERATURE, Q1, Q2)
-
+    # model = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
+    # this is a 207x4 matrix
+    model = Geometric_Encoder(P.TEMPERATURE)
     min_val_loss = np.inf
     optimizer = torch.optim.Adam(model.parameters(), lr=P.LEARN, weight_decay=P.weight_decay)
     s_time = datetime.now()
     for epoch in range(P.PRETRN_EPOCH):
+        # unseen stuff goes here
+        Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
+        Q1, Q2 = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges) # gives 2 networkx graphs 
+        fQ1, fQ2 = feature_extract(Q1), feature_extract(Q2) # 207x4 tensor
         starttime = datetime.now()
         loss_sum, n = 0.0, 0
         model.train()
+        # this used to be the data for BATCH_SIZE nodes (all data)
+        # this should now be the features for BATCH_SIZE nodes (all features)
+        # slice the 207x4 feature matrix into a BATCH_SIZEx4 feature matrix
         for x in pretrain_iter:
+            # x = [0, 15, 32, 79]
+            # fQ1[x] = [[0.7, 0.3, 0.8, 0.5], [0.6, 0.3, 0.8, 0.5], ...] [64 x 4]
             optimizer.zero_grad()
-            # pretrain iter 1 = 
-            # pretrain iter 2 = 
-            # loss = model.contrast(pretrain_iter1, pretrain_iter2)
-            loss = model.contrast(x[0].to(device))
+            pretrain_iter1 = fQ1[x] 
+            # loss = model.contrast([0.7, 0.3, 0.8, 0.5], [0.7, 0.3, 0.8, 0.5])
+            pretrain_iter2 = fQ2[x]
+            loss = model.contrast(pretrain_iter1, pretrain_iter2, adjacency(Q1).to, adjacency(Q2))
+            # loss = model.contrast(x[0].to(device))
             loss.backward()
             optimizer.step()
             loss_sum += loss.item() * x[0].shape[0]
@@ -230,10 +237,12 @@ def trainModel(name, mode,
     print('Model Training Started ...', s_time)
     if P.IS_PRETRN:
         encoder = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
+        # encoder = Geometric_Encoder(P.TEMPERATURE).to(device)
         encoder.eval()
         with torch.no_grad():
             encoder.load_state_dict(torch.load(P.PATH+ '/' + 'encoder' + '.pt'))
             train_embed = encoder(train_iter.dataset.tensors[0][:,-1,:,0].T.to(device)).T.detach()
+            # train_embed = encoder(feature_matrix) (207, 4) -> (207, 32)
             if P.IS_DESEASONED:
                 val_u_embed = encoder(torch.Tensor(data_ds[:P.train_size,spatialSplit_unseen.i_val]).to(device).float().T).T.detach()
                 val_a_embed = encoder(torch.Tensor(data_ds[:P.train_size,spatialSplit_allNod.i_val]).to(device).float().T).T.detach()
@@ -253,6 +262,7 @@ def trainModel(name, mode,
         model.train()
         for x, y in train_iter:
             optimizer.zero_grad()
+            # adj_train is NOT the adjacency matrix generated from all this pre-training stuff
             y_pred = model(x.to(device), adj_train, train_embed)
             loss = criterion(y_pred, y.to(device))
             loss.backward()
@@ -463,7 +473,7 @@ def main():
 
     if P.IS_PRETRN:
         print(P.KEYWORD, 'pretraining started', time.ctime())
-        pretrainModel('encoder', 'pretrain', pretrn_iter, preval_iter)
+        pretrainModel('encoder', 'pretrain', spatialSplit_unseen.i_trn, spatialSplit_unseen.i_val)
     else:
         print(P.KEYWORD, 'No pre-training')
 

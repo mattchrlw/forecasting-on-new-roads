@@ -320,22 +320,43 @@ def nt_xent_loss(out_1, out_2, temperature):
 
 
 class Geometric_Encoder(nn.Module):
-    def __init__(self, model, temperature):
+    def __init__(self, temperature):
         super().__init__()
-        self.model = model
         self.temperature = temperature
-        self.fc1 = GCNConv(4, 320)
-        self.fc2 = GCNConv(320, 32)
+        # MLP, hidden layer dim 320
+        self.fc1 = torch.nn.Linear(4, 320)
+        self.fc2 = torch.nn.Linear(320, 32)
+        self.fc3 = torch.nn.Linear(32, 32)
+        # NOTE: to extend this, use PyTorch ModuleList
+        # GCN for message passing
+        # 2-neighbour
+        self.gcn1 = GCNConv(32, 32)
+        self.gcn2 = GCNConv(32, 32)
+        # try adding a batchnorm 
+        # try adding a final "projection layer"?? see SimCLR
+        # InfoNCE loss space is different to representation space, so we avoid overfitting
+        self.fc_proj = torch.nn.Linear(32, 32)
 
-    def forward(self, x):
+    def forward(self, x, graph):
         x = self.fc1(x)
         x = F.relu(x)
         x = self.fc2(x)
+        x = F.relu(x)
+        x = self.gcn1(x, graph)
+        x = F.relu(x)
+        x = self.gcn2(x, graph)
+        x = F.relu(x)
+        x = self.fc3(x)
+        x = F.relu(x)
         return x
 
-    def contrast(self, x1, x2):
-        x1 = self(x1)
-        x2 = self(x2)
+    # [BATCHSIZE, 4, ...]
+    def contrast(self, x1, x2, graph1, graph2):
+        x1 = self(x1, graph1)
+        x2 = self(x2, graph2)
+        # only do this here, because we're doing this for pretraining
+        x1 = self.fc_proj(x1)
+        x2 = self.fc_proj(x2)
         # L2 norm
         x1 = F.normalize(x1)
         x2 = F.normalize(x2)

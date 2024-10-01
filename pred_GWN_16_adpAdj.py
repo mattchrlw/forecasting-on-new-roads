@@ -13,6 +13,7 @@ import Metrics
 from GWN_SCPT_14_adpAdj import *
 import unseen_nodes
 from graph import generate_quotient_graph, generate_graphs, feature_extract
+from torch_geometric.utils.convert import from_networkx
 
 class StandardScaler:
     def __init__(self):
@@ -162,6 +163,7 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
         # unseen stuff goes here
         Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
         Q1, Q2 = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges) # gives 2 networkx graphs 
+        nQ1, nQ2 = from_networkx(Q1), from_networkx(Q2)
         fQ1, fQ2 = feature_extract(Q1), feature_extract(Q2) # 207x4 tensor
         starttime = datetime.now()
         loss_sum, n = 0.0, 0
@@ -176,7 +178,7 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
             pretrain_iter1 = fQ1[x] 
             # loss = model.contrast([0.7, 0.3, 0.8, 0.5], [0.7, 0.3, 0.8, 0.5])
             pretrain_iter2 = fQ2[x]
-            loss = model.contrast(pretrain_iter1, pretrain_iter2, adjacency(Q1).to, adjacency(Q2))
+            loss = model.contrast(pretrain_iter1, pretrain_iter2, nQ1.edge_index, nQ2.edge_index)
             # loss = model.contrast(x[0].to(device))
             loss.backward()
             optimizer.step()

@@ -12,6 +12,7 @@ import Metrics
 # import Utils
 from GWN_SCPT_14_adpAdj import *
 import unseen_nodes
+from graph import generate_quotient_graph, generate_graphs, feature_extract
 
 class StandardScaler:
     def __init__(self):
@@ -236,8 +237,8 @@ def trainModel(name, mode,
     s_time = datetime.now()
     print('Model Training Started ...', s_time)
     if P.IS_PRETRN:
-        encoder = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
-        # encoder = Geometric_Encoder(P.TEMPERATURE).to(device)
+        # encoder = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
+        encoder = Geometric_Encoder(P.TEMPERATURE).to(device)
         encoder.eval()
         with torch.no_grad():
             encoder.load_state_dict(torch.load(P.PATH+ '/' + 'encoder' + '.pt'))

@@ -15,6 +15,7 @@ import unseen_nodes
 from graph import generate_quotient_graph, generate_graphs, feature_extract, load_metr_la
 from torch_geometric.utils.convert import from_networkx
 import random
+import matplotlib
 
 class StandardScaler:
     def __init__(self):
@@ -103,12 +104,14 @@ def setups():
     print('tst_a.shape', XS_torch_tst_a.shape, YS_torch_tst_a.shape)
     # torch dataset
     train_data = torch.utils.data.TensorDataset(XS_torch_train, YS_torch_train)
+    # 207 x K x D
     val_u_data = torch.utils.data.TensorDataset(XS_torch_val_u, YS_torch_val_u)
     val_a_data = torch.utils.data.TensorDataset(XS_torch_val_a, YS_torch_val_a)
     tst_u_data = torch.utils.data.TensorDataset(XS_torch_tst_u, YS_torch_tst_u)
     tst_a_data = torch.utils.data.TensorDataset(XS_torch_tst_a, YS_torch_tst_a)
     # torch dataloader
     train_iter = torch.utils.data.DataLoader(train_data, P.BATCHSIZE, shuffle=True)
+    # [64 x K x D, 64 x K x D, ...]
     val_u_iter = torch.utils.data.DataLoader(val_u_data, P.BATCHSIZE, shuffle=False)
     val_a_iter = torch.utils.data.DataLoader(val_a_data, P.BATCHSIZE, shuffle=False)
     tst_u_iter = torch.utils.data.DataLoader(tst_u_data, P.BATCHSIZE, shuffle=False)
@@ -171,14 +174,33 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
         # this used to be the data for BATCH_SIZE nodes (all data)
         # this should now be the features for BATCH_SIZE nodes (all features)
         # slice the 207x4 feature matrix into a BATCH_SIZEx4 feature matrix
+
+        # pretrain_iter = len([[...], [...], [...], ...]) = 10
         for x in pretrain_iter:
+            # x = len([0 7 108 34 ...]) = 64
             metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
             indices = list(map(lambda k: metr_la_keys[k], x))
+            # [0 -> 734108]
             Q1_s = Q1.subgraph(indices).copy()
             Q2_s = Q2.subgraph(indices).copy()
             # print(Q1, Q1_s, Q2, Q2_s)
             fQ1, fQ2 = feature_extract(Q1_s).float(), feature_extract(Q2_s).float() # 64x4 tensor
+            # Q1 -> fQ1: feature matrix
+            # Q1 -> nQ1: edge index, GCN doesn't like adjacency matrices
             nQ1, nQ2 = from_networkx(Q1_s), from_networkx(Q2_s)
+            positions1 = dict(map(lambda j: (j['x'], j['y']), nQ1.nodes))
+            positions2 = dict(map(lambda j: (j['x'], j['y']), nQ2.nodes))
+
+            fig = matplotlib.pyplot.figure()
+            nx.draw(Q1_s, pos=positions1)
+            fig.savefig("graph1.png")
+            
+            fig = matplotlib.pyplot.figure()
+            nx.draw(Q2_s, pos=positions2)
+            fig.savefig("graph2.png")
+
+            return
+
             # print(fQ1, fQ2)
             # print(nQ1, nQ2)
             # x = [0, 15, 32, 79]
@@ -248,6 +270,10 @@ def trainModel(name, mode,
     if P.IS_PRETRN:
         Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
         Q, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=True)
+
+        # train_iter = big matrix
+
+        # get the indices from train_iter and then do the same dance as earlier
         Q_train = Q.subgraph(train_iter).copy()
         fQ_train = feature_extract(Q_train).float()
         nQ_train = from_networkx(Q_train)
@@ -495,10 +521,6 @@ def main():
     pretrn_iter, preval_iter, spatialSplit_unseen, spatialSplit_allNod, \
     train_iter, val_u_iter, val_a_iter, tst_u_iter, tst_a_iter, \
     adj_train, adj_val_u, adj_val_a, adj_tst_u, adj_tst_a = setups()
-
-    print("Shapes", type(pretrn_iter), type(preval_iter), type(spatialSplit_unseen), type(spatialSplit_allNod), \
-    type(train_iter), type(val_u_iter), type(val_a_iter), type(tst_u_iter), type(tst_a_iter), \
-    type(adj_train), type(adj_val_u), type(adj_val_a), type(adj_tst_u), type(adj_tst_a), sep="\n")
 
     if P.IS_PRETRN:
         print(P.KEYWORD, 'pretraining started', time.ctime())

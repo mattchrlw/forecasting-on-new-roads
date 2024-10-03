@@ -12,7 +12,7 @@ import Metrics
 # import Utils
 from GWN_SCPT_14_adpAdj import *
 import unseen_nodes
-from graph import generate_quotient_graph, generate_graphs, feature_extract, load_metr_la
+from graph import generate_quotient_graph, generate_graphs, feature_extract, load_metr_la, get_subgraph
 from torch_geometric.utils.convert import from_networkx
 import random
 import matplotlib
@@ -130,7 +130,10 @@ def setups():
     print('adj_tst_u', len(adj_tst_u), adj_tst_u[0].shape, adj_tst_u[1].shape)
     print('adj_tst_a', len(adj_tst_a), adj_tst_a[0].shape, adj_tst_a[1].shape)
     # PRETRAIN data loader
-    pretrn_iter = [random.sample(list(spatialSplit_unseen.i_trn), P.BATCHSIZE) for _ in range(10)]
+    # pretrn_iter = [random.sample(list(spatialSplit_unseen.i_trn), P.BATCHSIZE) for _ in range(10)]
+    # this doesn't have to be tied to metr la nodes necessarily.
+    # all we need is some random assortment of OSM nodes, with density and scale roughly matching the METR-LA dataset.
+    pretrn_iter = [random.choice(spatialSplit_unseen.i_trn) for _ in range(100)]
     preval_iter = [list(spatialSplit_unseen.i_val)]
     # print('pretrn_iter.dataset.tensors[0].shape', pretrn_iter.dataset.tensors[0].shape)
     # print('preval_iter.dataset.tensors[0].shape', preval_iter.dataset.tensors[0].shape)
@@ -176,14 +179,15 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
         # this should now be the features for BATCH_SIZE nodes (all features)
         # slice the 207x4 feature matrix into a BATCH_SIZEx4 feature matrix
 
-        # pretrain_iter = len([[...], [...], [...], ...]) = 10
+        # pretrain_iter = len(0, 7, 108, 34, ...) = 100
         for x in pretrain_iter:
+            Q1_s, Q2_s = get_subgraph(Q1, x), get_subgraph(Q2, x)
             # x = len([0 7 108 34 ...]) = 64
-            metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
-            indices = list(map(lambda k: metr_la_keys[k], x))
-            # [0 -> 734108]
-            Q1_s = Q1.subgraph(indices).copy()
-            Q2_s = Q2.subgraph(indices).copy()
+            # metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
+            # indices = list(map(lambda k: metr_la_keys[k], x))
+            # # [0 -> 734108]
+            # Q1_s = Q1.subgraph(indices).copy()
+            # Q2_s = Q2.subgraph(indices).copy()
             # print(Q1, Q1_s, Q2, Q2_s)
             fQ1, fQ2 = feature_extract(Q1_s).float(), feature_extract(Q2_s).float() # 64x4 tensor
             # Q1 -> fQ1: feature matrix

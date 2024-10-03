@@ -405,11 +405,11 @@ def generate_adjacency(mode):
     return adj, gdf_nodes, gdf_edges, Q, clusters, nearest_node, Q1, Q2
 
 """
-Define a subgraph. Take a 40 node deterministic BFS
+Define a subgraph. Take a 64 node deterministic BFS
 """
-def subgraph(G, root):
+def get_subgraph(G, root, length=64):
     edges = nx.bfs_edges(G, root)
-    nodes = ([root] + [v for u, v in edges])[:40]
+    nodes = ([root] + [v for u, v in edges])[:length]
     return G.subgraph(nodes)
 
 if __name__ == "__main__":

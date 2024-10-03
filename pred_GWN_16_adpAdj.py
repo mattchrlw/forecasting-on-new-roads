@@ -16,6 +16,7 @@ from graph import generate_quotient_graph, generate_graphs, feature_extract, loa
 from torch_geometric.utils.convert import from_networkx
 import random
 import matplotlib
+import networkx as nx
 
 class StandardScaler:
     def __init__(self):

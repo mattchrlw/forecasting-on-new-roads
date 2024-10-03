@@ -188,8 +188,8 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
             # Q1 -> fQ1: feature matrix
             # Q1 -> nQ1: edge index, GCN doesn't like adjacency matrices
             nQ1, nQ2 = from_networkx(Q1_s), from_networkx(Q2_s)
-            positions1 = dict(map(lambda j: (j['x'], j['y']), Q1_s.nodes))
-            positions2 = dict(map(lambda j: (j['x'], j['y']), Q2_s.nodes))
+            positions1 = {k: (d['x'], d['y']) for (k, d) in Q1_s.nodes(data=True)}
+            positions2 = {k: (d['x'], d['y']) for (k, d) in Q2_s.nodes(data=True)}
 
             fig = matplotlib.pyplot.figure()
             nx.draw(Q1_s, pos=positions1)

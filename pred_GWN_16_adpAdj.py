@@ -134,7 +134,7 @@ def setups():
     # this doesn't have to be tied to metr la nodes necessarily.
     # all we need is some random assortment of OSM nodes, with density and scale roughly matching the METR-LA dataset.
     pretrn_iter = [random.choice(spatialSplit_unseen.i_trn) for _ in range(100)]
-    preval_iter = [list(spatialSplit_unseen.i_val)]
+    preval_iter = list(spatialSplit_unseen.i_val)
     # print('pretrn_iter.dataset.tensors[0].shape', pretrn_iter.dataset.tensors[0].shape)
     # print('preval_iter.dataset.tensors[0].shape', preval_iter.dataset.tensors[0].shape)
     # print
@@ -150,14 +150,13 @@ def pre_evaluateModel(model, data_iter, Q1, Q2):
     with torch.no_grad():
         for x in data_iter:
             metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
-            indices = list(map(lambda k: metr_la_keys[k], x))
-            Q1_s = Q1.subgraph(indices).copy()
-            Q2_s = Q2.subgraph(indices).copy()
+            Q1_s, Q2_s = get_subgraph(Q1, metr_la_keys[x]), get_subgraph(Q2, metr_la_keys[x])
             fQ1, fQ2 = feature_extract(Q1_s).float(), feature_extract(Q2_s).float() # 64x4 tensor
             nQ1, nQ2 = from_networkx(Q1_s), from_networkx(Q2_s)
+
             l = model.contrast(fQ1, fQ2, nQ1.edge_index, nQ2.edge_index)
-            l_sum += l.item() * len(x)
-            n += len(x)
+            l_sum += l.item() * P.BATCHSIZE
+            n += P.BATCHSIZE
         return l_sum / n
 
 def pretrainModel(name, mode, pretrain_iter, preval_iter):
@@ -181,7 +180,8 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
 
         # pretrain_iter = len(0, 7, 108, 34, ...) = 100
         for x in pretrain_iter:
-            Q1_s, Q2_s = get_subgraph(Q1, x), get_subgraph(Q2, x)
+            metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
+            Q1_s, Q2_s = get_subgraph(Q1, metr_la_keys[x]), get_subgraph(Q2, metr_la_keys[x])
             # x = len([0 7 108 34 ...]) = 64
             # metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
             # indices = list(map(lambda k: metr_la_keys[k], x))
@@ -196,15 +196,15 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
             positions1 = {k: (d['x'], d['y']) for (k, d) in Q1_s.nodes(data=True)}
             positions2 = {k: (d['x'], d['y']) for (k, d) in Q2_s.nodes(data=True)}
 
-            fig = matplotlib.pyplot.figure()
-            nx.draw(Q1_s, pos=positions1)
-            fig.savefig("graph1.png")
+            # fig = matplotlib.pyplot.figure()
+            # nx.draw(Q1_s, pos=positions1)
+            # fig.savefig("graph1.png")
             
-            fig = matplotlib.pyplot.figure()
-            nx.draw(Q2_s, pos=positions2)
-            fig.savefig("graph2.png")
+            # fig = matplotlib.pyplot.figure()
+            # nx.draw(Q2_s, pos=positions2)
+            # fig.savefig("graph2.png")
 
-            return
+            # return
 
             # print(fQ1, fQ2)
             # print(nQ1, nQ2)
@@ -216,8 +216,8 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
             # loss = model.contrast(x[0].to(device))
             loss.backward()
             optimizer.step()
-            loss_sum += loss.item() * len(x)
-            n += len(x)
+            loss_sum += loss.item() * P.BATCHSIZE
+            n += P.BATCHSIZE
         train_loss = loss_sum / n
         val_loss = pre_evaluateModel(model, preval_iter, Q1, Q2)
         if val_loss < min_val_loss:

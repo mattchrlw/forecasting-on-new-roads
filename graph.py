@@ -159,8 +159,11 @@ def quotient_graph(poly, nearest_node, gdf_nodes):
     for node in poly.nodes():
         x, y = gdf_nodes.loc[node]['x'], gdf_nodes.loc[node]['y']
         kdt = spatial.KDTree(A).query([x, y])
+        distance = np.linalg.norm(np.array([x, y]) - A[kdt[1]])
         nearest = f"{A[kdt[1]]}"
-        clusters[coords_to_node[nearest]].append(gdf_nodes.loc[node].name)
+        # THIS IS A HYPERPARAMETER
+        if distance < 0.01:
+            clusters[coords_to_node[nearest]].append(gdf_nodes.loc[node].name)
 
     Q = nx.Graph(nx.quotient_graph(poly, partition=clusters))
 
@@ -410,7 +413,6 @@ Define a subgraph. Take a 64 node deterministic BFS
 def get_subgraph(G, root, length=64):
     edges = nx.bfs_edges(G, root)
     nodes = ([root] + [v for u, v in edges])[:length]
-    print(nodes, G.nodes(data=True))
     return G.subgraph(nodes)
 
 if __name__ == "__main__":

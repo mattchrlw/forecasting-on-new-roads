@@ -14,6 +14,7 @@ from GWN_SCPT_14_adpAdj import *
 import unseen_nodes
 from graph import generate_quotient_graph, generate_graphs, feature_extract, load_metr_la, get_subgraph
 from torch_geometric.utils.convert import from_networkx
+from torch.utils.data import DataLoader, Dataset, TensorDataset
 import random
 import matplotlib
 import networkx as nx
@@ -47,20 +48,11 @@ def getXSYS(data, mode):
     XS = XS.transpose(0, 3, 2, 1)
     return XS, YS
 
-# https://discuss.pytorch.org/t/how-to-retrieve-the-sample-indices-of-a-mini-batch/7948/19
-def dataset_with_indices(cls):
-"""
-Modifies the given Dataset class to return a tuple data, target, index
-instead of just data, target.
-"""
-
+# Custom TensorDataset that returns indices
+class TensorDatasetWithIndices(TensorDataset):
     def __getitem__(self, index):
-        data, target = cls.__getitem__(self, index)
-        return data, target, index
-
-    return type(cls.__name__, (cls,), {
-        '__getitem__': __getitem__,
-    })
+        data = super().__getitem__(index)  # Retrieve the original data (features, targets)
+        return index, data  # Return the index along with the data
 
 def setups():
     # make save folder
@@ -119,12 +111,12 @@ def setups():
     print('tst_u.shape', XS_torch_tst_u.shape, YS_torch_tst_u.shape)
     print('tst_a.shape', XS_torch_tst_a.shape, YS_torch_tst_a.shape)
     # torch dataset
-    train_data = dataset_with_indices(torch.utils.data.TensorDataset(XS_torch_train, YS_torch_train))
+    train_data = TensorDatasetWithIndices(XS_torch_train, YS_torch_train)
     # 207 x K x D
-    val_u_data = dataset_with_indices(torch.utils.data.TensorDataset(XS_torch_val_u, YS_torch_val_u))
-    val_a_data = dataset_with_indices(torch.utils.data.TensorDataset(XS_torch_val_a, YS_torch_val_a))
-    tst_u_data = dataset_with_indices(torch.utils.data.TensorDataset(XS_torch_tst_u, YS_torch_tst_u))
-    tst_a_data = dataset_with_indices(torch.utils.data.TensorDataset(XS_torch_tst_a, YS_torch_tst_a))
+    val_u_data = TensorDatasetWithIndices(XS_torch_val_u, YS_torch_val_u)
+    val_a_data = TensorDatasetWithIndices(XS_torch_val_a, YS_torch_val_a)
+    tst_u_data = TensorDatasetWithIndices(XS_torch_tst_u, YS_torch_tst_u)
+    tst_a_data = TensorDatasetWithIndices(XS_torch_tst_a, YS_torch_tst_a)
     # torch dataloader
     train_iter = torch.utils.data.DataLoader(train_data, P.BATCHSIZE, shuffle=True)
     # [64 x K x D, 64 x K x D, ...]
@@ -274,12 +266,22 @@ def predictModel(model, data_iter, adj, embed):
         YS_pred = np.vstack(YS_pred)
     return YS_pred
 
+def graph_constructor_helper(indices):
+    Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
+    Q1, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=True) # gives 2 networkx graphs 
+    metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
+    Q1_s = get_subgraph(Q1, metr_la_keys[indices])
+    fQ1 = feature_extract(Q1_s).float()
+    # Q1 -> fQ1: feature matrix
+    # Q1 -> nQ1: edge index, GCN doesn't like adjacency matrices
+    nQ1 = from_networkx(Q1_s)
+    return fQ1, nQ1
+
 def trainModel(name, mode,
         train_iter, val_u_iter, val_a_iter,
         adj_train, adj_val_u, adj_val_a,
         spatialSplit_unseen, spatialSplit_allNod):
     print('trainModel Started ...', time.ctime())
-    print(train_iter)
     print('TIMESTEP_IN, TIMESTEP_OUT', P.TIMESTEP_IN, P.TIMESTEP_OUT)
     model = getModel(name, device)
     min_val_u_loss = np.inf
@@ -289,38 +291,18 @@ def trainModel(name, mode,
     s_time = datetime.now()
     print('Model Training Started ...', s_time)
     if P.IS_PRETRN:
-        Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
-        Q, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=True)
-
-        # train_iter = big matrix
-
-        # get the indices from train_iter and then do the same dance as earlier
-        Q_train = Q.subgraph(train_iter).copy()
-        fQ_train = feature_extract(Q_train).float()
-        nQ_train = from_networkx(Q_train)
-
-        Q_val_u = Q.subgraph(spatialSplit_unseen.i_val).copy()
-        Q_val_a = Q.subgraph(spatialSplit_allNod.i_val).copy()
-        fQ_val_u = feature_extract(Q_val_u).float()
-        nQ_val_u = from_networkx(Q_val_u)
-        fQ_val_a = feature_extract(Q_val_a).float()
-        nQ_val_a = from_networkx(Q_val_a)
-        # encoder = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
         encoder = Geometric_Encoder(P.TEMPERATURE).to(device)
         encoder.eval()
+
         with torch.no_grad():
             encoder.load_state_dict(torch.load(P.PATH+ '/' + 'encoder' + '.pt'))
-            # the input of the encoder here is the feature matrix
-            train_embed = encoder(fQ_train, nQ_train.edge_index).T.detach()
-            # train_embed = encoder(feature_matrix) (207, 4) -> (207, 32)
-            val_u_embed = encoder(fQ_val_u, nQ_val_u.edge_index).T.detach()
-            val_a_embed = encoder(fQ_val_a, nQ_val_a.edge_index).T.detach()
-            # if P.IS_DESEASONED:
-            #     val_u_embed = encoder(torch.Tensor(data_ds[:P.train_size,spatialSplit_unseen.i_val]).to(device).float().T).T.detach()
-            #     val_a_embed = encoder(torch.Tensor(data_ds[:P.train_size,spatialSplit_allNod.i_val]).to(device).float().T).T.detach()
-            # else:
-            #     val_u_embed = encoder(torch.Tensor(data[:P.train_size,spatialSplit_unseen.i_val]).to(device).float().T).T.detach()
-            #     val_a_embed = encoder(torch.Tensor(data[:P.train_size,spatialSplit_allNod.i_val]).to(device).float().T).T.detach()
+            fQ1_trn, nQ1_trn = graph_constructor_helper(spatialSplit_unseen.i_trn)
+            train_embed = encoder(fQ1_trn, nQ1_trn.edge_index).to(device).T.detach()
+
+            fQ1_val_u, nQ1_val_u = graph_constructor_helper(spatialSplit_unseen.i_val)
+            fQ1_val_a, nQ1_val_a = graph_constructor_helper(spatialSplit_allNod.i_val)
+            val_u_embed = encoder(fQ1_val_u, nQ1_val_u.edge_index).to(device).T.detach()
+            val_a_embed = encoder(fQ1_val_a, nQ1_val_u.edge_index).to(device).T.detach()
     else:
         train_embed = torch.zeros(32, train_iter.dataset.tensors[0].shape[2]).to(device).detach()
         val_u_embed = torch.zeros(32, val_u_iter.dataset.tensors[0].shape[2]).to(device).detach()
@@ -334,7 +316,6 @@ def trainModel(name, mode,
         model.train()
         for x, y in train_iter:
             optimizer.zero_grad()
-            # adj_train is NOT the adjacency matrix generated from all this pre-training stuff
             y_pred = model(x.to(device), adj_train, train_embed)
             loss = criterion(y_pred, y.to(device))
             loss.backward()
@@ -435,7 +416,7 @@ P.TIMESTEP_OUT = 12
 P.CHANNEL = 1
 P.BATCHSIZE = 64 # 64
 P.LEARN = 0.001
-P.PRETRN_EPOCH = 100
+P.PRETRN_EPOCH = 1
 P.EPOCH = 100 # 100
 P.TRAINRATIO = 0.8 # TRAIN + VAL
 P.TRAINVALSPLIT = 0.125 # val_ratio = 0.8 * 0.125 = 0.1

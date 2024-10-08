@@ -47,6 +47,21 @@ def getXSYS(data, mode):
     XS = XS.transpose(0, 3, 2, 1)
     return XS, YS
 
+# https://discuss.pytorch.org/t/how-to-retrieve-the-sample-indices-of-a-mini-batch/7948/19
+def dataset_with_indices(cls):
+"""
+Modifies the given Dataset class to return a tuple data, target, index
+instead of just data, target.
+"""
+
+    def __getitem__(self, index):
+        data, target = cls.__getitem__(self, index)
+        return data, target, index
+
+    return type(cls.__name__, (cls,), {
+        '__getitem__': __getitem__,
+    })
+
 def setups():
     # make save folder
     if not os.path.exists(P.PATH):
@@ -104,12 +119,12 @@ def setups():
     print('tst_u.shape', XS_torch_tst_u.shape, YS_torch_tst_u.shape)
     print('tst_a.shape', XS_torch_tst_a.shape, YS_torch_tst_a.shape)
     # torch dataset
-    train_data = torch.utils.data.TensorDataset(XS_torch_train, YS_torch_train)
+    train_data = dataset_with_indices(torch.utils.data.TensorDataset(XS_torch_train, YS_torch_train))
     # 207 x K x D
-    val_u_data = torch.utils.data.TensorDataset(XS_torch_val_u, YS_torch_val_u)
-    val_a_data = torch.utils.data.TensorDataset(XS_torch_val_a, YS_torch_val_a)
-    tst_u_data = torch.utils.data.TensorDataset(XS_torch_tst_u, YS_torch_tst_u)
-    tst_a_data = torch.utils.data.TensorDataset(XS_torch_tst_a, YS_torch_tst_a)
+    val_u_data = dataset_with_indices(torch.utils.data.TensorDataset(XS_torch_val_u, YS_torch_val_u))
+    val_a_data = dataset_with_indices(torch.utils.data.TensorDataset(XS_torch_val_a, YS_torch_val_a))
+    tst_u_data = dataset_with_indices(torch.utils.data.TensorDataset(XS_torch_tst_u, YS_torch_tst_u))
+    tst_a_data = dataset_with_indices(torch.utils.data.TensorDataset(XS_torch_tst_a, YS_torch_tst_a))
     # torch dataloader
     train_iter = torch.utils.data.DataLoader(train_data, P.BATCHSIZE, shuffle=True)
     # [64 x K x D, 64 x K x D, ...]
@@ -264,6 +279,7 @@ def trainModel(name, mode,
         adj_train, adj_val_u, adj_val_a,
         spatialSplit_unseen, spatialSplit_allNod):
     print('trainModel Started ...', time.ctime())
+    print(train_iter)
     print('TIMESTEP_IN, TIMESTEP_OUT', P.TIMESTEP_IN, P.TIMESTEP_OUT)
     model = getModel(name, device)
     min_val_u_loss = np.inf

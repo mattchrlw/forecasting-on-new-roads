@@ -111,12 +111,12 @@ def setups():
     print('tst_u.shape', XS_torch_tst_u.shape, YS_torch_tst_u.shape)
     print('tst_a.shape', XS_torch_tst_a.shape, YS_torch_tst_a.shape)
     # torch dataset
-    train_data = TensorDatasetWithIndices(XS_torch_train, YS_torch_train)
+    train_data = torch.utils.data.TensorDataset(XS_torch_train, YS_torch_train)
     # 207 x K x D
-    val_u_data = TensorDatasetWithIndices(XS_torch_val_u, YS_torch_val_u)
-    val_a_data = TensorDatasetWithIndices(XS_torch_val_a, YS_torch_val_a)
-    tst_u_data = TensorDatasetWithIndices(XS_torch_tst_u, YS_torch_tst_u)
-    tst_a_data = TensorDatasetWithIndices(XS_torch_tst_a, YS_torch_tst_a)
+    val_u_data = torch.utils.data.TensorDataset(XS_torch_val_u, YS_torch_val_u)
+    val_a_data = torch.utils.data.TensorDataset(XS_torch_val_a, YS_torch_val_a)
+    tst_u_data = torch.utils.data.TensorDataset(XS_torch_tst_u, YS_torch_tst_u)
+    tst_a_data = torch.utils.data.TensorDataset(XS_torch_tst_a, YS_torch_tst_a)
     # torch dataloader
     train_iter = torch.utils.data.DataLoader(train_data, P.BATCHSIZE, shuffle=True)
     # [64 x K x D, 64 x K x D, ...]
@@ -158,8 +158,8 @@ def pre_evaluateModel(model, data_iter, Q1, Q2):
         for x in data_iter:
             metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
             Q1_s, Q2_s = get_subgraph(Q1, metr_la_keys[x]), get_subgraph(Q2, metr_la_keys[x])
-            fQ1, fQ2 = feature_extract(Q1_s).float(), feature_extract(Q2_s).float() # 64x4 tensor
-            nQ1, nQ2 = from_networkx(Q1_s), from_networkx(Q2_s)
+            fQ1, fQ2 = feature_extract(Q1_s).float().to(device), feature_extract(Q2_s).float().to(device) # 64x4 tensor
+            nQ1, nQ2 = from_networkx(Q1_s).to(device), from_networkx(Q2_s).to(device)
 
             l = model.contrast(fQ1, fQ2, nQ1.edge_index, nQ2.edge_index)
             l_sum += l.item() * P.BATCHSIZE
@@ -170,7 +170,7 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
     print('pretrainModel Started ...', time.ctime())
     # model = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
     # this is a 207x4 matrix
-    model = Geometric_Encoder(P.TEMPERATURE)
+    model = Geometric_Encoder(P.TEMPERATURE).to(device)
     min_val_loss = np.inf
     optimizer = torch.optim.Adam(model.parameters(), lr=P.LEARN, weight_decay=P.weight_decay)
     s_time = datetime.now()
@@ -196,10 +196,10 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
             # Q1_s = Q1.subgraph(indices).copy()
             # Q2_s = Q2.subgraph(indices).copy()
             # print(Q1, Q1_s, Q2, Q2_s)
-            fQ1, fQ2 = feature_extract(Q1_s).float(), feature_extract(Q2_s).float() # 64x4 tensor
+            fQ1, fQ2 = feature_extract(Q1_s).float().to(device), feature_extract(Q2_s).float().to(device) # 64x4 tensor
             # Q1 -> fQ1: feature matrix
             # Q1 -> nQ1: edge index, GCN doesn't like adjacency matrices
-            nQ1, nQ2 = from_networkx(Q1_s), from_networkx(Q2_s)
+            nQ1, nQ2 = from_networkx(Q1_s).to(device), from_networkx(Q2_s).to(device)
             positions1 = {k: (d['x'], d['y']) for (k, d) in Q1_s.nodes(data=True)}
             positions2 = {k: (d['x'], d['y']) for (k, d) in Q2_s.nodes(data=True)}
 
@@ -266,12 +266,12 @@ def predictModel(model, data_iter, adj, embed):
         YS_pred = np.vstack(YS_pred)
     return YS_pred
 
-def graph_constructor_helper(index):
+def graph_constructor_helper(indices):
     Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
     Q1, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=True) # gives 2 networkx graphs 
     metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
-    Q1_s = get_subgraph(Q1, metr_la_keys[index])
-    fQ1 = feature_extract(Q1_s).float()
+    Q1_s = Q1.subgraph([metr_la_keys[i] for i in indices])
+    fQ1 = feature_extract(Q1_s).float().to(device)
     # Q1 -> fQ1: feature matrix
     # Q1 -> nQ1: edge index, GCN doesn't like adjacency matrices
     nQ1 = from_networkx(Q1_s)
@@ -296,20 +296,14 @@ def trainModel(name, mode,
 
         with torch.no_grad():
             encoder.load_state_dict(torch.load(P.PATH+ '/' + 'encoder' + '.pt'))
-            for index in spatialSplit_unseen.i_trn:
-                fQ1_trn, nQ1_trn = graph_constructor_helper(index)
-                train_embed = encoder(fQ1_trn, nQ1_trn.edge_index).to(device).T.detach()
-                print(train_embed)
+            fQ1_trn, nQ1_trn = graph_constructor_helper(spatialSplit_unseen.i_trn)
+            train_embed = encoder(fQ1_trn.to(device), nQ1_trn.edge_index.to(device)).T.detach()
 
-            for index in spatialSplit_unseen.i_val:
-                fQ1_val_u, nQ1_val_u = graph_constructor_helper(index)
-                val_u_embed = encoder(fQ1_val_u, nQ1_val_u.edge_index).to(device).T.detach()
-                print(val_u_embed)
+            fQ1_val_u, nQ1_val_u = graph_constructor_helper(spatialSplit_unseen.i_val)
+            val_u_embed = encoder(fQ1_val_u.to(device), nQ1_val_u.edge_index.to(device)).T.detach()
 
-            for index in spatialSplit_allNod.i_val:
-                fQ1_val_a, nQ1_val_a = graph_constructor_helper(index)
-                val_a_embed = encoder(fQ1_val_a, nQ1_val_u.edge_index).to(device).T.detach()
-                print(val_a_embed)
+            fQ1_val_a, nQ1_val_a = graph_constructor_helper(spatialSplit_allNod.i_val)
+            val_a_embed = encoder(fQ1_val_a.to(device), nQ1_val_u.edge_index.to(device)).T.detach()
     else:
         train_embed = torch.zeros(32, train_iter.dataset.tensors[0].shape[2]).to(device).detach()
         val_u_embed = torch.zeros(32, val_u_iter.dataset.tensors[0].shape[2]).to(device).detach()
@@ -322,7 +316,6 @@ def trainModel(name, mode,
         loss_sum, n = 0.0, 0
         model.train()
         for x, y in train_iter:
-            
             optimizer.zero_grad()
             y_pred = model(x.to(device), adj_train, train_embed)
             loss = criterion(y_pred, y.to(device))
@@ -370,7 +363,7 @@ def testModel(name, mode, test_iter, adj_tst, spatialsplit):
     print('Model Testing', mode, 'Started ...', time.ctime())
     print('TIMESTEP_IN, TIMESTEP_OUT', P.TIMESTEP_IN, P.TIMESTEP_OUT)
     if P.IS_PRETRN:
-        encoder = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
+        encoder = Geometric_Encoder(P.TEMPERATURE).to(device)
         encoder.load_state_dict(torch.load(P.PATH+ '/' + 'encoder' + '.pt'))
         encoder.eval()
     model = getModel(name, device)
@@ -378,17 +371,8 @@ def testModel(name, mode, test_iter, adj_tst, spatialsplit):
     s_time = datetime.now()
     
     print('Model Infer Start ...', s_time)
-    tst_embed = torch.zeros(32, test_iter.dataset.tensors[0].shape[2]).to(device).detach()
-    n_node_remaining = P.N_NODE
-    if P.IS_PRETRN:
-        data_= data_ds if P.IS_DESEASONED else data
-        with torch.no_grad():
-            i=0
-            while n_node_remaining > 2000:
-                tst_embed[:, i*2000:(i+1)*2000] = encoder(torch.Tensor(data_[:P.trainval_size,spatialsplit.i_tst[i*2000:(i+1)*2000]]).to(device).float().T).T.detach()
-                i+=1
-                n_node_remaining -= 2000
-            tst_embed[:, -n_node_remaining:] = encoder(torch.Tensor(data_[:P.trainval_size,spatialsplit.i_tst[-n_node_remaining:]]).to(device).float().T).T.detach()
+    fQ1_trn, nQ1_trn = graph_constructor_helper(spatialsplit.i_tst)
+    tst_embed = encoder(fQ1_trn.to(device), nQ1_trn.edge_index.to(device)).T.detach()
     torch_score = evaluateModel(model, criterion, test_iter, adj_tst, tst_embed)
     e_time = datetime.now()
     print('Model Infer End ...', e_time)

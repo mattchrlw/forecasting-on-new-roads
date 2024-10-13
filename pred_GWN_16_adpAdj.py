@@ -266,11 +266,11 @@ def predictModel(model, data_iter, adj, embed):
         YS_pred = np.vstack(YS_pred)
     return YS_pred
 
-def graph_constructor_helper(indices):
+def graph_constructor_helper(index):
     Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
     Q1, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=True) # gives 2 networkx graphs 
     metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
-    Q1_s = get_subgraph(Q1, metr_la_keys[indices])
+    Q1_s = get_subgraph(Q1, metr_la_keys[index])
     fQ1 = feature_extract(Q1_s).float()
     # Q1 -> fQ1: feature matrix
     # Q1 -> nQ1: edge index, GCN doesn't like adjacency matrices
@@ -296,13 +296,20 @@ def trainModel(name, mode,
 
         with torch.no_grad():
             encoder.load_state_dict(torch.load(P.PATH+ '/' + 'encoder' + '.pt'))
-            fQ1_trn, nQ1_trn = graph_constructor_helper(spatialSplit_unseen.i_trn)
-            train_embed = encoder(fQ1_trn, nQ1_trn.edge_index).to(device).T.detach()
+            for index in spatialSplit_unseen.i_trn:
+                fQ1_trn, nQ1_trn = graph_constructor_helper(index)
+                train_embed = encoder(fQ1_trn, nQ1_trn.edge_index).to(device).T.detach()
+                print(train_embed)
 
-            fQ1_val_u, nQ1_val_u = graph_constructor_helper(spatialSplit_unseen.i_val)
-            fQ1_val_a, nQ1_val_a = graph_constructor_helper(spatialSplit_allNod.i_val)
-            val_u_embed = encoder(fQ1_val_u, nQ1_val_u.edge_index).to(device).T.detach()
-            val_a_embed = encoder(fQ1_val_a, nQ1_val_u.edge_index).to(device).T.detach()
+            for index in spatialSplit_unseen.i_val:
+                fQ1_val_u, nQ1_val_u = graph_constructor_helper(index)
+                val_u_embed = encoder(fQ1_val_u, nQ1_val_u.edge_index).to(device).T.detach()
+                print(val_u_embed)
+
+            for index in spatialSplit_allNod.i_val:
+                fQ1_val_a, nQ1_val_a = graph_constructor_helper(index)
+                val_a_embed = encoder(fQ1_val_a, nQ1_val_u.edge_index).to(device).T.detach()
+                print(val_a_embed)
     else:
         train_embed = torch.zeros(32, train_iter.dataset.tensors[0].shape[2]).to(device).detach()
         val_u_embed = torch.zeros(32, val_u_iter.dataset.tensors[0].shape[2]).to(device).detach()
@@ -315,6 +322,7 @@ def trainModel(name, mode,
         loss_sum, n = 0.0, 0
         model.train()
         for x, y in train_iter:
+            
             optimizer.zero_grad()
             y_pred = model(x.to(device), adj_train, train_embed)
             loss = criterion(y_pred, y.to(device))

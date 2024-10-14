@@ -257,7 +257,6 @@ def generate_length_matrix(metr_la, adj, gdf_edges, nearest_node, poly, speed=Fa
 Generates a "pair" of graphs from one graph.
 """
 def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=False):
-    print("generate_graphs nearest", nearest)
     if nearest:
         partition_1 = nearest_node
         partition_2 = partition_1
@@ -314,7 +313,6 @@ def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=Fal
         attributes.update(d.keys())
     for _, d in Q2.nodes(data=True):
         attributes.update(d.keys())
-    print("THE ATTRIBUTES ARE", attributes)
 
     # TODO: scaling the coordinates...
     # nx.add_edge_lengths(Q1.nodes[])

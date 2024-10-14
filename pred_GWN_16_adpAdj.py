@@ -274,7 +274,7 @@ def graph_constructor_helper(indices):
     fQ1 = feature_extract(Q1_s).float().to(device)
     # Q1 -> fQ1: feature matrix
     # Q1 -> nQ1: edge index, GCN doesn't like adjacency matrices
-    nQ1 = from_networkx(Q1)
+    nQ1 = from_networkx(Q1_s)
     return fQ1, nQ1
 
 def trainModel(name, mode,

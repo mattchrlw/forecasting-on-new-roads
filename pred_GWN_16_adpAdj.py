@@ -369,8 +369,8 @@ def testModel(name, mode, test_iter, adj_tst, spatialsplit):
     
     print('Model Infer Start ...', s_time)
     if P.IS_PRETRN:
-        fQ1_trn, nQ1_trn = graph_constructor_helper(spatialsplit.i_tst)
-        tst_embed = encoder(fQ1_trn.to(device), nQ1_trn.edge_index.to(device)).T.detach()
+        fQ1, nQ1 = graph_constructor_helper()
+        tst_embed = encoder(fQ1.to(device), nQ1.edge_index.to(device))[spatialsplit.i_tst].T.detach()
     else:
         tst_embed = torch.zeros(32, test_iter.dataset.tensors[0].shape[2]).to(device).detach()
 

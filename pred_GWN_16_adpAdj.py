@@ -266,7 +266,7 @@ def predictModel(model, data_iter, adj, embed):
         YS_pred = np.vstack(YS_pred)
     return YS_pred
 
-def graph_constructor_helper(indices):
+def graph_constructor_helper():
     Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
     Q1, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=True) # gives 2 networkx graphs 
     metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}

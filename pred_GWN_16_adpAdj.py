@@ -140,7 +140,7 @@ def setups():
     # pretrn_iter = [random.sample(list(spatialSplit_unseen.i_trn), P.BATCHSIZE) for _ in range(10)]
     # this doesn't have to be tied to metr la nodes necessarily.
     # all we need is some random assortment of OSM nodes, with density and scale roughly matching the METR-LA dataset.
-    pretrn_iter = [random.choice(spatialSplit_unseen.i_trn) for _ in range(100)]
+    pretrn_iter = random.sample(list(spatialSplit_unseen.i_trn), P.BATCHSIZE)
     preval_iter = list(spatialSplit_unseen.i_val)
     # print('pretrn_iter.dataset.tensors[0].shape', pretrn_iter.dataset.tensors[0].shape)
     # print('preval_iter.dataset.tensors[0].shape', preval_iter.dataset.tensors[0].shape)
@@ -270,11 +270,10 @@ def graph_constructor_helper(indices):
     Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
     Q1, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=True) # gives 2 networkx graphs 
     metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
-    Q1_s = Q1.subgraph([metr_la_keys[i] for i in indices])
-    fQ1 = feature_extract(Q1_s).float().to(device)
+    fQ1 = feature_extract(Q1).float().to(device)
     # Q1 -> fQ1: feature matrix
     # Q1 -> nQ1: edge index, GCN doesn't like adjacency matrices
-    nQ1 = from_networkx(Q1_s)
+    nQ1 = from_networkx(Q1)
     return fQ1, nQ1
 
 def trainModel(name, mode,
@@ -294,16 +293,14 @@ def trainModel(name, mode,
         encoder = Geometric_Encoder(P.TEMPERATURE).to(device)
         encoder.eval()
 
+        # this should be updated, so a forward pass with the encoder is run over the whole graph.
+        # then the embeddings are sliced based on the indices of spatialSplit_...
         with torch.no_grad():
             encoder.load_state_dict(torch.load(P.PATH+ '/' + 'encoder' + '.pt'))
-            fQ1_trn, nQ1_trn = graph_constructor_helper(spatialSplit_unseen.i_trn)
-            train_embed = encoder(fQ1_trn.to(device), nQ1_trn.edge_index.to(device)).T.detach()
-
-            fQ1_val_u, nQ1_val_u = graph_constructor_helper(spatialSplit_unseen.i_val)
-            val_u_embed = encoder(fQ1_val_u.to(device), nQ1_val_u.edge_index.to(device)).T.detach()
-
-            fQ1_val_a, nQ1_val_a = graph_constructor_helper(spatialSplit_allNod.i_val)
-            val_a_embed = encoder(fQ1_val_a.to(device), nQ1_val_u.edge_index.to(device)).T.detach()
+            fQ1, nQ1 = graph_constructor_helper()
+            train_embed = encoder(fQ1.to(device), nQ1.edge_index.to(device))[spatialSplit_unseen.i_trn].T.detach()
+            val_u_embed = encoder(fQ1.to(device), nQ1.edge_index.to(device))[spatialSplit_unseen.i_val].T.detach()
+            val_a_embed = encoder(fQ1.to(device), nQ1.edge_index.to(device))[spatialSplit_allNod.i_val].T.detach()
     else:
         train_embed = torch.zeros(32, train_iter.dataset.tensors[0].shape[2]).to(device).detach()
         val_u_embed = torch.zeros(32, val_u_iter.dataset.tensors[0].shape[2]).to(device).detach()

@@ -175,6 +175,10 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
     optimizer = torch.optim.Adam(model.parameters(), lr=P.LEARN, weight_decay=P.weight_decay)
     s_time = datetime.now()
     Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
+    Q_nearest = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=True)
+    scaler = MinMaxScaler()
+    scaler.fit(feature_extract(Q_nearest))
+
     for epoch in range(P.PRETRN_EPOCH):
         # unseen stuff trainModel here
         Q1, Q2 = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges) # gives 2 networkx graphs 
@@ -196,12 +200,10 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
             # Q1_s = Q1.subgraph(indices).copy()
             # Q2_s = Q2.subgraph(indices).copy()
             # print(Q1, Q1_s, Q2, Q2_s)
-            fQ1, fQ2 = feature_extract(Q1_s).float().to(device), feature_extract(Q2_s).float().to(device) # 64x4 tensor
+            fQ1, fQ2 = scaler(feature_extract(Q1_s).float().to(device)), scaler(feature_extract(Q2_s).float().to(device)) # 64x4 tensor
             # Q1 -> fQ1: feature matrix
             # Q1 -> nQ1: edge index, GCN doesn't like adjacency matrices
             nQ1, nQ2 = from_networkx(Q1_s).to(device), from_networkx(Q2_s).to(device)
-            positions1 = {k: (d['x'], d['y']) for (k, d) in Q1_s.nodes(data=True)}
-            positions2 = {k: (d['x'], d['y']) for (k, d) in Q2_s.nodes(data=True)}
 
             # fig = matplotlib.pyplot.figure()
             # nx.draw(Q1_s, pos=positions1)

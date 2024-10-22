@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader, Dataset, TensorDataset
 import random
 import matplotlib
 import networkx as nx
+from sklearn.preprocessing import MinMaxScaler
 
 class StandardScaler:
     def __init__(self):

@@ -201,7 +201,7 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
             # Q1_s = Q1.subgraph(indices).copy()
             # Q2_s = Q2.subgraph(indices).copy()
             # print(Q1, Q1_s, Q2, Q2_s)
-            fQ1, fQ2 = scaler(feature_extract(Q1_s).float().to(device)), scaler(feature_extract(Q2_s).float().to(device)) # 64x4 tensor
+            fQ1, fQ2 = scaler.transform(feature_extract(Q1_s).float().to(device)), scaler.transform(feature_extract(Q2_s).float().to(device)) # 64x4 tensor
             # Q1 -> fQ1: feature matrix
             # Q1 -> nQ1: edge index, GCN doesn't like adjacency matrices
             nQ1, nQ2 = from_networkx(Q1_s).to(device), from_networkx(Q2_s).to(device)

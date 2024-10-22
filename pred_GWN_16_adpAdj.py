@@ -176,7 +176,7 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
     optimizer = torch.optim.Adam(model.parameters(), lr=P.LEARN, weight_decay=P.weight_decay)
     s_time = datetime.now()
     Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
-    Q_nearest = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=True)
+    Q_nearest, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=True)
     scaler = MinMaxScaler()
     scaler.fit(feature_extract(Q_nearest))
 

@@ -335,11 +335,17 @@ def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=Fal
 """
 Extract features.
 """
-def feature_extract(G):
-    return torch.tensor(list(map(
-        lambda x: [x[1]['x'], x[1]['y'], x[1]['lanes'], x[1]['speed_kph']], 
-        G.nodes(data=True)))
-    )
+def feature_extract(G, num_features):
+    if num_features == 4:
+        return torch.tensor(list(map(
+            lambda x: [x[1]['x'], x[1]['y'], x[1]['lanes'], x[1]['speed_kph']], 
+            G.nodes(data=True)))
+        )
+    else:
+        return torch.tensor(list(map(
+            lambda x: [x[1]['lanes'], x[1]['speed_kph']], 
+            G.nodes(data=True)))
+        ) 
 
 """
 Generates the quotient graph.

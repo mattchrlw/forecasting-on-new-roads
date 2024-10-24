@@ -159,7 +159,7 @@ def pre_evaluateModel(model, data_iter, Q1, Q2):
         for x in data_iter:
             metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
             Q1_s, Q2_s = get_subgraph(Q1, metr_la_keys[x]), get_subgraph(Q2, metr_la_keys[x])
-            fQ1, fQ2 = feature_extract(Q1_s).float().to(device), feature_extract(Q2_s).float().to(device) # 64x4 tensor
+            fQ1, fQ2 = feature_extract(Q1_s, P.FEATURES).float().to(device), feature_extract(Q2_s, P.FEATURES).float().to(device) # 64x4 tensor
             nQ1, nQ2 = from_networkx(Q1_s).to(device), from_networkx(Q2_s).to(device)
 
             l = model.contrast(fQ1, fQ2, nQ1.edge_index, nQ2.edge_index)
@@ -171,14 +171,14 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
     print('pretrainModel Started ...', time.ctime())
     # model = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
     # this is a 207x4 matrix
-    model = Geometric_Encoder(P.TEMPERATURE).to(device)
+    model = Geometric_Encoder(P.TEMPERATURE, P.FEATURES).to(device)
     min_val_loss = np.inf
     optimizer = torch.optim.Adam(model.parameters(), lr=P.LEARN, weight_decay=P.weight_decay)
     s_time = datetime.now()
     Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
     Q_nearest, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=True)
     scaler = MinMaxScaler()
-    scaler.fit(feature_extract(Q_nearest))
+    scaler.fit(feature_extract(Q_nearest, P.FEATURES))
 
     for epoch in range(P.PRETRN_EPOCH):
         # unseen stuff trainModel here
@@ -201,7 +201,8 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
             # Q1_s = Q1.subgraph(indices).copy()
             # Q2_s = Q2.subgraph(indices).copy()
             # print(Q1, Q1_s, Q2, Q2_s)
-            fQ1, fQ2 = torch.from_numpy(scaler.transform(feature_extract(Q1_s))).float().to(device), torch.from_numpy(scaler.transform(feature_extract(Q2_s))).float().to(device) # 64x4 tensor
+            fQ1, fQ2 = torch.from_numpy(scaler.transform(feature_extract(Q1_s, P.FEATURES))).float().to(device), \
+            torch.from_numpy(scaler.transform(feature_extract(Q2_s, P.FEATURES))).float().to(device) # 64x4 tensor
             # Q1 -> fQ1: feature matrix
             # Q1 -> nQ1: edge index, GCN doesn't like adjacency matrices
             nQ1, nQ2 = from_networkx(Q1_s).to(device), from_networkx(Q2_s).to(device)
@@ -273,7 +274,7 @@ def graph_constructor_helper():
     Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
     Q1, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=True) # gives 2 networkx graphs 
     metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
-    fQ1 = feature_extract(Q1).float().to(device)
+    fQ1 = feature_extract(Q1, P.FEATURES).float().to(device)
     # Q1 -> fQ1: feature matrix
     # Q1 -> nQ1: edge index, GCN doesn't like adjacency matrices
     nQ1 = from_networkx(Q1)
@@ -293,7 +294,7 @@ def trainModel(name, mode,
     s_time = datetime.now()
     print('Model Training Started ...', s_time)
     if P.IS_PRETRN:
-        encoder = Geometric_Encoder(P.TEMPERATURE).to(device)
+        encoder = Geometric_Encoder(P.TEMPERATURE, P.FEATURES).to(device)
         encoder.eval()
 
         # this should be updated, so a forward pass with the encoder is run over the whole graph.
@@ -363,7 +364,7 @@ def testModel(name, mode, test_iter, adj_tst, spatialsplit):
     print('Model Testing', mode, 'Started ...', time.ctime())
     print('TIMESTEP_IN, TIMESTEP_OUT', P.TIMESTEP_IN, P.TIMESTEP_OUT)
     if P.IS_PRETRN:
-        encoder = Geometric_Encoder(P.TEMPERATURE).to(device)
+        encoder = Geometric_Encoder(P.TEMPERATURE, P.FEATURES).to(device)
         encoder.load_state_dict(torch.load(P.PATH+ '/' + 'encoder' + '.pt'))
         encoder.eval()
     model = getModel(name, device)
@@ -418,6 +419,7 @@ P.TRAINRATIO = 0.8 # TRAIN + VAL
 P.TRAINVALSPLIT = 0.125 # val_ratio = 0.8 * 0.125 = 0.1
 P.ADJTYPE = 'doubletransition'
 P.MODELNAME = 'GraphWaveNet'
+P.FEATURES = 4
 
 data = None
 data_ds = None
@@ -437,6 +439,7 @@ def get_argv():
     9: weight_decay
     10: adp_adj
     11: is_SGA
+    12: FEATURES
     '''
     print('sys.argv', sys.argv)
     P.IS_PRETRN = bool(int(sys.argv[1])) if len(sys.argv) >= 2 else True
@@ -450,6 +453,7 @@ def get_argv():
     P.weight_decay = float(sys.argv[9]) if len(sys.argv) >= 10 else 0.0
     P.adp_adj = bool(int(sys.argv[10])) if len(sys.argv) >= 11 else False
     P.is_SGA = bool(int(sys.argv[11])) if len(sys.argv) >= 12 else True
+    P.FEATURES = int(sys.argv[12]) if len(sys.argv) >= 13 else 4
 
 device = torch.device('cuda:0') 
 ###########################################################

@@ -458,6 +458,8 @@ def get_argv():
     P.FEATURES = int(sys.argv[12]) if len(sys.argv) >= 13 else 4
     P.SUBGRAPH_SIZE = int(sys.argv[13]) if len(sys.argv) >= 14 else 64
     P.QUOTIENT_GRAPH_RADIUS = float(sys.argv[14]) if len(sys.argv) >= 15 else 0.01
+    P.PRETRN_EPOCH = int(sys.argv[15]) if len(sys.argv) >= 16 else 100
+    P.EPOCH = int(sys.argv[16]) if len(sys.argv) >= 17 else 100
 
 device = torch.device('cuda:0') 
 ###########################################################

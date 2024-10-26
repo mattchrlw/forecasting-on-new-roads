@@ -15,6 +15,7 @@ import pandas as pd
 import random
 import torch
 from sklearn.preprocessing import MinMaxScaler
+from scipy import stats
 
 MODES = ['identity', 'rbf', 'rbf-osm', 'osm', 'osm-length', 'osm-length-speed']
 
@@ -134,7 +135,7 @@ def add_osm_features(graph, nearest_node, clusters, gdf_nodes, gdf_edges):
         features[node] = {
             # TODO: make this a sampling instead of an averaging
             "lanes": _max_with_lists(df['lanes'].values),
-            "speed_kph": max(df['speed_kph'])
+            "speed_kph": stats.mode(df['speed_kph'])
             # add x and y coordinates for "centers"
         }
     

@@ -143,7 +143,7 @@ def add_osm_features(graph, nearest_node, clusters, gdf_nodes, gdf_edges):
 """
 Constructs a quotient graph, collapsing the original OSM graph to a graph with METR-LA nodes.
 """
-def quotient_graph(poly, nearest_node, gdf_nodes):
+def quotient_graph(poly, nearest_node, gdf_nodes, radius):
     A = []
     coords_to_node = {}
     clusters = defaultdict(lambda: [])
@@ -162,7 +162,7 @@ def quotient_graph(poly, nearest_node, gdf_nodes):
         distance = np.linalg.norm(np.array([x, y]) - A[kdt[1]])
         nearest = f"{A[kdt[1]]}"
         # THIS IS A HYPERPARAMETER
-        if distance < 0.01:
+        if distance < radius:
             clusters[coords_to_node[nearest]].append(gdf_nodes.loc[node].name)
 
     Q = nx.Graph(nx.quotient_graph(poly, partition=clusters))
@@ -341,11 +341,16 @@ def feature_extract(G, num_features):
             lambda x: [x[1]['x'], x[1]['y'], x[1]['lanes'], x[1]['speed_kph']], 
             G.nodes(data=True)))
         )
-    else:
+    elif num_features == 2:
         return torch.tensor(list(map(
             lambda x: [x[1]['lanes'], x[1]['speed_kph']], 
             G.nodes(data=True)))
         ) 
+    elif num_features == 1:
+        return torch.tensor(list(map(
+            lambda x: [x[1]['speed_kph']], 
+            G.nodes(data=True)))
+        )
 
 """
 Generates the quotient graph.
@@ -356,7 +361,7 @@ clusters: clusters of OSM nodes based on traffic node
 gdf_nodes: GDF with node features
 gdf_edges: GDF with edge features
 """
-def generate_quotient_graph():
+def generate_quotient_graph(radius=0.01):
     metr_la = load_metr_la()
     # {id: (x, y)}
     # generate more: 
@@ -366,7 +371,7 @@ def generate_quotient_graph():
     #
     traffic, gdf_nodes, gdf_edges = load_osm(metr_la)
     nearest_node = find_matching(metr_la, traffic)
-    Q, clusters = quotient_graph(traffic, nearest_node, gdf_nodes)
+    Q, clusters = quotient_graph(traffic, nearest_node, gdf_nodes, radius)
     Q = relabel_graph(Q, nearest_node, clusters)
 
     return Q, nearest_node, clusters, gdf_nodes, gdf_edges

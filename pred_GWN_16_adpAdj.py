@@ -158,7 +158,7 @@ def pre_evaluateModel(model, data_iter, Q1, Q2):
     with torch.no_grad():
         for x in data_iter:
             metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
-            Q1_s, Q2_s = get_subgraph(Q1, metr_la_keys[x]), get_subgraph(Q2, metr_la_keys[x])
+            Q1_s, Q2_s = get_subgraph(Q1, metr_la_keys[x], P.SUBGRAPH_SIZE), get_subgraph(Q2, metr_la_keys[x], P.SUBGRAPH_SIZE)
             fQ1, fQ2 = feature_extract(Q1_s, P.FEATURES).float().to(device), feature_extract(Q2_s, P.FEATURES).float().to(device) # 64x4 tensor
             nQ1, nQ2 = from_networkx(Q1_s).to(device), from_networkx(Q2_s).to(device)
 
@@ -175,7 +175,7 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
     min_val_loss = np.inf
     optimizer = torch.optim.Adam(model.parameters(), lr=P.LEARN, weight_decay=P.weight_decay)
     s_time = datetime.now()
-    Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
+    Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph(P.QUOTIENT_GRAPH_RADIUS)
     Q_nearest, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=True)
     scaler = MinMaxScaler()
     scaler.fit(feature_extract(Q_nearest, P.FEATURES))
@@ -193,7 +193,7 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
         # pretrain_iter = len(0, 7, 108, 34, ...) = 100
         for x in pretrain_iter:
             metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
-            Q1_s, Q2_s = get_subgraph(Q1, metr_la_keys[x]), get_subgraph(Q2, metr_la_keys[x])
+            Q1_s, Q2_s = get_subgraph(Q1, metr_la_keys[x], P.SUBGRAPH_SIZE), get_subgraph(Q2, metr_la_keys[x], P.SUBGRAPH_SIZE)
             # x = len([0 7 108 34 ...]) = 64
             # metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
             # indices = list(map(lambda k: metr_la_keys[k], x))
@@ -271,7 +271,7 @@ def predictModel(model, data_iter, adj, embed):
     return YS_pred
 
 def graph_constructor_helper():
-    Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph()
+    Q, nearest_node, clusters, gdf_nodes, gdf_edges = generate_quotient_graph(P.QUOTIENT_GRAPH_RADIUS)
     Q1, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=True) # gives 2 networkx graphs 
     metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
     fQ1 = feature_extract(Q1, P.FEATURES).float().to(device)
@@ -420,6 +420,8 @@ P.TRAINVALSPLIT = 0.125 # val_ratio = 0.8 * 0.125 = 0.1
 P.ADJTYPE = 'doubletransition'
 P.MODELNAME = 'GraphWaveNet'
 P.FEATURES = 4
+P.SUBGRAPH_SIZE = 64
+P.QUOTIENT_GRAPH_RADIUS = 0.01
 
 data = None
 data_ds = None
@@ -454,6 +456,8 @@ def get_argv():
     P.adp_adj = bool(int(sys.argv[10])) if len(sys.argv) >= 11 else False
     P.is_SGA = bool(int(sys.argv[11])) if len(sys.argv) >= 12 else True
     P.FEATURES = int(sys.argv[12]) if len(sys.argv) >= 13 else 4
+    P.SUBGRAPH_SIZE = int(sys.argv[13]) if len(sys.argv) >= 14 else 64
+    P.QUOTIENT_GRAPH_RADIUS = float(sys.argv[14]) if len(sys.argv) >= 15 else 0.01
 
 device = torch.device('cuda:0') 
 ###########################################################

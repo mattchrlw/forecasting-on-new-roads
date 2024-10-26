@@ -293,21 +293,21 @@ def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=Fal
         try:
             u_side_edges = gdf_edges.xs(v, level='u')
             Q1.nodes[k]['lanes'] = _max_with_lists(u_side_edges['lanes'].values)
-            Q1.nodes[k]["speed_kph"] = random.choice(u_side_edges['speed_kph'].values)
+            Q1.nodes[k]["speed_kph"] = max(u_side_edges['speed_kph'].values)
         except KeyError:
             v_side_edges = gdf_edges.xs(v, level='v')
             Q1.nodes[k]['lanes'] = _max_with_lists(v_side_edges['lanes'].values)
-            Q1.nodes[k]["speed_kph"] = random.choice(v_side_edges['speed_kph'].values)
+            Q1.nodes[k]["speed_kph"] = max(v_side_edges['speed_kph'].values)
 
     for k, v in partition_2.items():
         try:
             u_side_edges = gdf_edges.xs(v, level='u')
             Q2.nodes[k]['lanes'] = _max_with_lists(u_side_edges['lanes'].values)
-            Q2.nodes[k]["speed_kph"] = random.choice(u_side_edges['speed_kph'].values)
+            Q2.nodes[k]["speed_kph"] = max(u_side_edges['speed_kph'].values)
         except KeyError:
             v_side_edges = gdf_edges.xs(v, level='v')
             Q2.nodes[k]['lanes'] = _max_with_lists(v_side_edges['lanes'].values)
-            Q2.nodes[k]["speed_kph"] = random.choice(v_side_edges['speed_kph'].values)
+            Q2.nodes[k]["speed_kph"] = max(v_side_edges['speed_kph'].values)
 
     attributes = set()
     for _, d in Q1.nodes(data=True):

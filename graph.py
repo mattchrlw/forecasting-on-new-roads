@@ -71,7 +71,7 @@ def load_osm(nodes):
     # convert to undirected for simplicity
     poly = ox.convert.to_undirected(poly)
     gdf_nodes, gdf_edges = ox.graph_to_gdfs(poly)
-    return poly, gdf_nodes, gdf_edges
+    return poly, gdf_nodes, gdf_edges, hull
 
 """
 For each METR-LA node, find the *nearest* OSM node.
@@ -387,12 +387,12 @@ def generate_quotient_graph(radius=0.01):
     # generate unseen nodes between???
     # more_metr_la = more(metr_la)
     #
-    traffic, gdf_nodes, gdf_edges = load_osm(metr_la)
+    traffic, gdf_nodes, gdf_edges, hull = load_osm(metr_la)
     nearest_node = find_matching(metr_la, traffic)
     Q, clusters = quotient_graph(traffic, nearest_node, gdf_nodes, radius)
     Q = relabel_graph(Q, nearest_node, clusters)
 
-    return Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic
+    return Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic, hull
 
 """
 Generates an adjacency matrix.

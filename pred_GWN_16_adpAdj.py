@@ -175,8 +175,8 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
     min_val_loss = np.inf
     optimizer = torch.optim.Adam(model.parameters(), lr=P.LEARN, weight_decay=P.weight_decay)
     s_time = datetime.now()
-    Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic = generate_quotient_graph(P.QUOTIENT_GRAPH_RADIUS)
-    info = get_additional_info(traffic)
+    Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic, hull = generate_quotient_graph(P.QUOTIENT_GRAPH_RADIUS)
+    info = get_additional_info(hull)
     Q_nearest, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, info, nearest=True)
     scaler = MinMaxScaler()
     scaler.fit(feature_extract(Q_nearest, P.FEATURES))
@@ -272,8 +272,9 @@ def predictModel(model, data_iter, adj, embed):
     return YS_pred
 
 def graph_constructor_helper():
-    Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic = generate_quotient_graph(P.QUOTIENT_GRAPH_RADIUS)
-    Q1, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic, nearest=True) # gives 2 networkx graphs 
+    Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic, hull = generate_quotient_graph(P.QUOTIENT_GRAPH_RADIUS)
+    info = get_additional_info(hull)
+    Q1, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, info, nearest=True) # gives 2 networkx graphs 
     metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
     fQ1 = feature_extract(Q1, P.FEATURES).float().to(device)
     # Q1 -> fQ1: feature matrix

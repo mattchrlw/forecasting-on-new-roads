@@ -306,7 +306,7 @@ def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, info, neare
             Q1.nodes[k]["speed_kph"] = max(v_side_edges['speed_kph'].values)
 
         point = Q1.nodes[k]['x'], Q1.nodes[k]['y']
-        Q1.nodes[k]['amenities'] = len(feat.sindex.query(Point(point).buffer(0.01)))
+        Q1.nodes[k]['amenities'] = len(info.sindex.query(Point(point).buffer(0.01)))
 
     for k, v in partition_2.items():
         try:
@@ -319,7 +319,7 @@ def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, info, neare
             Q2.nodes[k]["speed_kph"] = max(v_side_edges['speed_kph'].values)
 
         point = Q2.nodes[k]['x'], Q2.nodes[k]['y']
-        Q2.nodes[k]['amenities'] = len(feat.sindex.query(Point(point).buffer(0.01)))
+        Q2.nodes[k]['amenities'] = len(info.sindex.query(Point(point).buffer(0.01)))
 
     attributes = set()
     for _, d in Q1.nodes(data=True):

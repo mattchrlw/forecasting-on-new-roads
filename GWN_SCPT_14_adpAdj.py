@@ -324,8 +324,9 @@ class Geometric_Encoder(nn.Module):
         super().__init__()
         self.temperature = temperature
         # MLP, hidden layer dim 320
-        self.fc1 = torch.nn.Linear(num_features, 64)
-        self.fc2 = torch.nn.Linear(64, 32)
+        self.fc1 = torch.nn.Linear(num_features, 320)
+        self.fc2 = torch.nn.Linear(320, 32)
+        self.fc3 = torch.nn.Linear(32, 32)
         # NOTE: to extend this, use PyTorch ModuleList
         # GCN for message passing
         # 2-neighbour
@@ -348,8 +349,8 @@ class Geometric_Encoder(nn.Module):
         x = F.relu(x)
         x = self.bn2(x)
         x = self.gcn2(x, graph)
-        x = F.relu(x)
-        x = self.fc3(x)
+        # x = F.relu(x)
+        # x = self.fc3(x)
         x = F.relu(x)
         return x
 

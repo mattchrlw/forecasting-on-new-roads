@@ -532,14 +532,17 @@ def main():
     train_iter, val_u_iter, val_a_iter, tst_u_iter, tst_a_iter, \
     adj_train, adj_val_u, adj_val_a, adj_tst_u, adj_tst_a = setups()
 
-    adj_train, adj_val_u, adj_val_a, adj_tst_u, adj_tst_a = adj_train.to(device), \
-        adj_val_u.to(device), adj_val_a.to(device), adj_tst_u.to(device), adj_tst_a.to(device)
-
     if P.IS_PRETRN:
         print(P.KEYWORD, 'pretraining started', time.ctime())
         pretrainModel('encoder', 'pretrain', pretrn_iter, preval_iter)
     else:
         print(P.KEYWORD, 'No pre-training')
+    
+    adj_train = [i.to(device) for i in adj_train]
+    adj_val_u = [i.to(device) for i in adj_val_u]
+    adj_val_a = [i.to(device) for i in adj_val_a]
+    adj_tst_u = [i.to(device) for i in adj_tst_u]
+    adj_tst_a = [i.to(device) for i in adj_tst_a]
 
     print(P.KEYWORD, 'training started', time.ctime())
     trainModel(P.MODELNAME, 'train',

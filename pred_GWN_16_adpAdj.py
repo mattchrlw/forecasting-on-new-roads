@@ -127,11 +127,11 @@ def setups():
     tst_a_iter = torch.utils.data.DataLoader(tst_a_data, P.BATCHSIZE, shuffle=False)
     # adj matrix spatial split
     adj_mx = load_adj(P.ADJPATH, P.ADJTYPE, P.DATANAME)
-    adj_train = [torch.tensor(i[spatialSplit_unseen.i_trn,:][:,spatialSplit_unseen.i_trn]) for i in adj_mx]
-    adj_val_u = [torch.tensor(i[spatialSplit_unseen.i_val,:][:,spatialSplit_unseen.i_val]) for i in adj_mx]
-    adj_val_a = [torch.tensor(i[spatialSplit_allNod.i_val,:][:,spatialSplit_allNod.i_val]) for i in adj_mx]
-    adj_tst_u = [torch.tensor(i[spatialSplit_unseen.i_tst,:][:,spatialSplit_unseen.i_tst]) for i in adj_mx]
-    adj_tst_a = [torch.tensor(i[spatialSplit_allNod.i_tst,:][:,spatialSplit_allNod.i_tst]) for i in adj_mx]
+    adj_train = [torch.tensor(i[spatialSplit_unseen.i_trn,:][:,spatialSplit_unseen.i_trn]).to(device) for i in adj_mx]
+    adj_val_u = [torch.tensor(i[spatialSplit_unseen.i_val,:][:,spatialSplit_unseen.i_val]).to(device) for i in adj_mx]
+    adj_val_a = [torch.tensor(i[spatialSplit_allNod.i_val,:][:,spatialSplit_allNod.i_val]).to(device) for i in adj_mx]
+    adj_tst_u = [torch.tensor(i[spatialSplit_unseen.i_tst,:][:,spatialSplit_unseen.i_tst]).to(device) for i in adj_mx]
+    adj_tst_a = [torch.tensor(i[spatialSplit_allNod.i_tst,:][:,spatialSplit_allNod.i_tst]).to(device) for i in adj_mx]
     print('adj_train', len(adj_train), adj_train[0].shape, adj_train[1].shape)
     print('adj_val_u', len(adj_val_u), adj_val_u[0].shape, adj_val_u[1].shape)
     print('adj_val_a', len(adj_val_a), adj_val_a[0].shape, adj_val_a[1].shape)
@@ -166,6 +166,11 @@ def pre_evaluateModel(model, data_iter, Q1, Q2):
             l_sum += l.item() * P.BATCHSIZE
             n += P.BATCHSIZE
         return l_sum / n
+
+def network_calls():
+    Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic, hull = generate_quotient_graph(P.QUOTIENT_GRAPH_RADIUS)
+    info = get_additional_info(hull)
+    return
 
 def pretrainModel(name, mode, pretrain_iter, preval_iter):
     print('pretrainModel Started ...', time.ctime())
@@ -424,6 +429,7 @@ P.MODELNAME = 'GraphWaveNet'
 P.FEATURES = 4
 P.SUBGRAPH_SIZE = 64
 P.QUOTIENT_GRAPH_RADIUS = 0.01
+P.NETWORK_CALLS = 0
 
 data = None
 data_ds = None
@@ -462,6 +468,7 @@ def get_argv():
     P.QUOTIENT_GRAPH_RADIUS = float(sys.argv[14]) if len(sys.argv) >= 15 else 0.01
     P.PRETRN_EPOCH = int(sys.argv[15]) if len(sys.argv) >= 16 else 100
     P.EPOCH = int(sys.argv[16]) if len(sys.argv) >= 17 else 100
+    P.NETWORK_CALLS = bool(int(sys.argv[17])) if len(sys.argv) >= 18 else 0
 
 device = torch.device('cuda:0') 
 ###########################################################
@@ -511,6 +518,10 @@ def main():
     else:
         print('NO DATA LOADED')
 
+    if P.NETWORK_CALLS:
+        network_calls()
+        return
+
     # de-season
     if P.IS_DESEASONED:
         P.CHANNEL = 2
@@ -537,12 +548,6 @@ def main():
         pretrainModel('encoder', 'pretrain', pretrn_iter, preval_iter)
     else:
         print(P.KEYWORD, 'No pre-training')
-    
-    adj_train = [i.to(device) for i in adj_train]
-    adj_val_u = [i.to(device) for i in adj_val_u]
-    adj_val_a = [i.to(device) for i in adj_val_a]
-    adj_tst_u = [i.to(device) for i in adj_tst_u]
-    adj_tst_a = [i.to(device) for i in adj_tst_a]
 
     print(P.KEYWORD, 'training started', time.ctime())
     trainModel(P.MODELNAME, 'train',

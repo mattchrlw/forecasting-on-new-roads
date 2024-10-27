@@ -332,6 +332,7 @@ class Geometric_Encoder(nn.Module):
         # 2-neighbour
         self.gcn1 = GCNConv(32, 32)
         self.gcn2 = GCNConv(32, 32)
+        self.gcn3 = GCNConv(32, 32)
         # try adding a batchnorm 
         # try adding a final "projection layer"?? see SimCLR
         # InfoNCE loss space is different to representation space, so we avoid overfitting
@@ -345,6 +346,8 @@ class Geometric_Encoder(nn.Module):
         x = self.gcn1(x, graph)
         x = F.relu(x)
         x = self.gcn2(x, graph)
+        x = F.relu(x)
+        x = self.gcn3(x, graph)
         x = F.relu(x)
         x = self.fc3(x)
         x = F.relu(x)

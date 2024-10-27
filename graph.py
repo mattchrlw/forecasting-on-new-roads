@@ -57,7 +57,7 @@ Output:
 """
 def load_osm(nodes):
     # convex hull
-    hull = shapely.convex_hull(MultiPoint(list(nodes.values())))
+    hull = shapely.convex_hull(MultiPoint(list(nodes.values()))).buffer(0.01)
 
     poly = ox.graph.graph_from_polygon(
         hull,

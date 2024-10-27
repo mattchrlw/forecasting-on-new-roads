@@ -333,8 +333,6 @@ class Geometric_Encoder(nn.Module):
         self.gcn1 = GCNConv(32, 32)
         self.gcn2 = GCNConv(32, 32)
         # try adding a batchnorm 
-        self.bn1 = torch.nn.BatchNorm1d(32)
-        self.bn2 = torch.nn.BatchNorm1d(32)
         # try adding a final "projection layer"?? see SimCLR
         # InfoNCE loss space is different to representation space, so we avoid overfitting
         self.fc_proj = torch.nn.Linear(32, 32)
@@ -344,10 +342,10 @@ class Geometric_Encoder(nn.Module):
         x = F.relu(x)
         x = self.fc2(x)
         x = F.relu(x)
-        x = self.bn1(x)
+        # x = self.bn1(x)
         x = self.gcn1(x, graph)
         x = F.relu(x)
-        x = self.bn2(x)
+        # x = self.bn2(x)
         x = self.gcn2(x, graph)
         x = F.relu(x)
         x = self.fc3(x)

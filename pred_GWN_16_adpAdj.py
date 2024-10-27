@@ -12,7 +12,7 @@ import Metrics
 # import Utils
 from GWN_SCPT_14_adpAdj import *
 import unseen_nodes
-from graph import generate_quotient_graph, generate_graphs, feature_extract, load_metr_la, get_subgraph
+from graph import generate_quotient_graph, generate_graphs, feature_extract, load_metr_la, get_subgraph, get_additional_info
 from torch_geometric.utils.convert import from_networkx
 from torch.utils.data import DataLoader, Dataset, TensorDataset
 import random

@@ -1,4 +1,4 @@
-from shapely import MultiPoint
+from shapely import MultiPoint, Point
 from collections import defaultdict
 from scipy import spatial
 from pprint import pprint
@@ -255,9 +255,15 @@ def generate_length_matrix(metr_la, adj, gdf_edges, nearest_node, poly, speed=Fa
     return length_mat_scaled
 
 """
+Returns an additional GeoDataFrame with information.
+"""
+def get_additional_info(poly):
+    return ox.features.features_from_polygon(poly, tags = {"amenity":True})
+
+"""
 Generates a "pair" of graphs from one graph.
 """
-def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=False):
+def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, info, nearest=False):
     if nearest:
         partition_1 = nearest_node
         partition_2 = partition_1
@@ -299,6 +305,9 @@ def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=Fal
             Q1.nodes[k]['lanes'] = _max_with_lists(v_side_edges['lanes'].values)
             Q1.nodes[k]["speed_kph"] = max(v_side_edges['speed_kph'].values)
 
+        point = Q1.nodes[k]['x'], Q1.nodes[k]['y']
+        Q1.nodes[k]['amenities'] = len(feat.sindex.query(Point(point).buffer(0.01)))
+
     for k, v in partition_2.items():
         try:
             u_side_edges = gdf_edges.xs(v, level='u')
@@ -308,6 +317,9 @@ def generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, nearest=Fal
             v_side_edges = gdf_edges.xs(v, level='v')
             Q2.nodes[k]['lanes'] = _max_with_lists(v_side_edges['lanes'].values)
             Q2.nodes[k]["speed_kph"] = max(v_side_edges['speed_kph'].values)
+
+        point = Q2.nodes[k]['x'], Q2.nodes[k]['y']
+        Q2.nodes[k]['amenities'] = len(feat.sindex.query(Point(point).buffer(0.01)))
 
     attributes = set()
     for _, d in Q1.nodes(data=True):
@@ -375,7 +387,7 @@ def generate_quotient_graph(radius=0.01):
     Q, clusters = quotient_graph(traffic, nearest_node, gdf_nodes, radius)
     Q = relabel_graph(Q, nearest_node, clusters)
 
-    return Q, nearest_node, clusters, gdf_nodes, gdf_edges
+    return Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic
 
 """
 Generates an adjacency matrix.

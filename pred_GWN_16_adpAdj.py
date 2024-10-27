@@ -127,11 +127,11 @@ def setups():
     tst_a_iter = torch.utils.data.DataLoader(tst_a_data, P.BATCHSIZE, shuffle=False)
     # adj matrix spatial split
     adj_mx = load_adj(P.ADJPATH, P.ADJTYPE, P.DATANAME)
-    adj_train = [torch.tensor(i[spatialSplit_unseen.i_trn,:][:,spatialSplit_unseen.i_trn]).to(device) for i in adj_mx]
-    adj_val_u = [torch.tensor(i[spatialSplit_unseen.i_val,:][:,spatialSplit_unseen.i_val]).to(device) for i in adj_mx]
-    adj_val_a = [torch.tensor(i[spatialSplit_allNod.i_val,:][:,spatialSplit_allNod.i_val]).to(device) for i in adj_mx]
-    adj_tst_u = [torch.tensor(i[spatialSplit_unseen.i_tst,:][:,spatialSplit_unseen.i_tst]).to(device) for i in adj_mx]
-    adj_tst_a = [torch.tensor(i[spatialSplit_allNod.i_tst,:][:,spatialSplit_allNod.i_tst]).to(device) for i in adj_mx]
+    adj_train = [torch.tensor(i[spatialSplit_unseen.i_trn,:][:,spatialSplit_unseen.i_trn]) for i in adj_mx]
+    adj_val_u = [torch.tensor(i[spatialSplit_unseen.i_val,:][:,spatialSplit_unseen.i_val]) for i in adj_mx]
+    adj_val_a = [torch.tensor(i[spatialSplit_allNod.i_val,:][:,spatialSplit_allNod.i_val]) for i in adj_mx]
+    adj_tst_u = [torch.tensor(i[spatialSplit_unseen.i_tst,:][:,spatialSplit_unseen.i_tst]) for i in adj_mx]
+    adj_tst_a = [torch.tensor(i[spatialSplit_allNod.i_tst,:][:,spatialSplit_allNod.i_tst]) for i in adj_mx]
     print('adj_train', len(adj_train), adj_train[0].shape, adj_train[1].shape)
     print('adj_val_u', len(adj_val_u), adj_val_u[0].shape, adj_val_u[1].shape)
     print('adj_val_a', len(adj_val_a), adj_val_a[0].shape, adj_val_a[1].shape)
@@ -531,6 +531,9 @@ def main():
     pretrn_iter, preval_iter, spatialSplit_unseen, spatialSplit_allNod, \
     train_iter, val_u_iter, val_a_iter, tst_u_iter, tst_a_iter, \
     adj_train, adj_val_u, adj_val_a, adj_tst_u, adj_tst_a = setups()
+
+    adj_train, adj_val_u, adj_val_a, adj_tst_u, adj_tst_a = adj_train.to(device), \
+        adj_val_u.to(device), adj_val_a.to(device), adj_tst_u.to(device), adj_tst_a.to(device)
 
     if P.IS_PRETRN:
         print(P.KEYWORD, 'pretraining started', time.ctime())

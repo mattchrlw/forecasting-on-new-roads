@@ -356,7 +356,7 @@ def feature_extract(G, num_features):
         )
     if num_features == 4:
         return torch.tensor(list(map(
-            lambda x: [x[1]['x'], x[1]['y'], x[1]['lanes'], x[1]['speed_kph']], 
+            lambda x: [x[1]['x'], x[1]['y'], x[1]['amenities'], x[1]['speed_kph']], 
             G.nodes(data=True)))
         )
     elif num_features == 3:

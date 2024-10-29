@@ -178,7 +178,7 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
     # this is a 207x4 matrix
     model = Geometric_Encoder(P.TEMPERATURE, P.FEATURES).to(device)
     min_val_loss = np.inf
-    optimizer = torch.optim.Adam(model.parameters(), lr=P.LEARN, weight_decay=P.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), lr=P.PRE_LEARN, weight_decay=P.weight_decay)
     s_time = datetime.now()
     Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic, hull = generate_quotient_graph(P.QUOTIENT_GRAPH_RADIUS)
     info = get_additional_info(hull)
@@ -430,6 +430,7 @@ P.FEATURES = 4
 P.SUBGRAPH_SIZE = 64
 P.QUOTIENT_GRAPH_RADIUS = 0.01
 P.NETWORK_CALLS = 0
+P.PRE_LEARN = 0.0001
 
 data = None
 data_ds = None
@@ -469,6 +470,7 @@ def get_argv():
     P.PRETRN_EPOCH = int(sys.argv[15]) if len(sys.argv) >= 16 else 100
     P.EPOCH = int(sys.argv[16]) if len(sys.argv) >= 17 else 100
     P.NETWORK_CALLS = bool(int(sys.argv[17])) if len(sys.argv) >= 18 else 0
+    P.PRE_LEARN = float(sys.argv[18]) if len(sys.argv) >= 19 else P.LEARN
 
 device = torch.device('cuda:0') 
 ###########################################################

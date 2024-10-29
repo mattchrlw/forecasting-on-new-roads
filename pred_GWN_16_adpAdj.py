@@ -176,7 +176,7 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
     print('pretrainModel Started ...', time.ctime())
     # model = Contrastive_FeatureExtractor_conv(P.TEMPERATURE).to(device)
     # this is a 207x4 matrix
-    model = Geometric_Encoder(P.TEMPERATURE, P.FEATURES).to(device)
+    model = Geometric_Encoder(P.TEMPERATURE, P.FEATURES, P.GRAPH_NORM).to(device)
     min_val_loss = np.inf
     optimizer = torch.optim.Adam(model.parameters(), lr=P.PRE_LEARN, weight_decay=P.weight_decay)
     s_time = datetime.now()
@@ -301,7 +301,7 @@ def trainModel(name, mode,
     s_time = datetime.now()
     print('Model Training Started ...', s_time)
     if P.IS_PRETRN:
-        encoder = Geometric_Encoder(P.TEMPERATURE, P.FEATURES).to(device)
+        encoder = Geometric_Encoder(P.TEMPERATURE, P.FEATURES, P.GRAPH_NORM).to(device)
         encoder.eval()
 
         # this should be updated, so a forward pass with the encoder is run over the whole graph.
@@ -371,7 +371,7 @@ def testModel(name, mode, test_iter, adj_tst, spatialsplit):
     print('Model Testing', mode, 'Started ...', time.ctime())
     print('TIMESTEP_IN, TIMESTEP_OUT', P.TIMESTEP_IN, P.TIMESTEP_OUT)
     if P.IS_PRETRN:
-        encoder = Geometric_Encoder(P.TEMPERATURE, P.FEATURES).to(device)
+        encoder = Geometric_Encoder(P.TEMPERATURE, P.FEATURES, P.GRAPH_NORM).to(device)
         encoder.load_state_dict(torch.load(P.PATH+ '/' + 'encoder' + '.pt'))
         encoder.eval()
     model = getModel(name, device)
@@ -431,6 +431,7 @@ P.SUBGRAPH_SIZE = 64
 P.QUOTIENT_GRAPH_RADIUS = 0.01
 P.NETWORK_CALLS = 0
 P.PRE_LEARN = 0.0001
+P.GRAPH_NORM = False
 
 data = None
 data_ds = None
@@ -471,6 +472,7 @@ def get_argv():
     P.EPOCH = int(sys.argv[16]) if len(sys.argv) >= 17 else 100
     P.NETWORK_CALLS = bool(int(sys.argv[17])) if len(sys.argv) >= 18 else 0
     P.PRE_LEARN = float(sys.argv[18]) if len(sys.argv) >= 19 else P.LEARN
+    P.GRAPH_NORM = bool(int(sys.argv[19])) if len(sys.argv) >= 20 else False
 
 device = torch.device('cuda:0') 
 ###########################################################

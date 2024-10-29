@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 from Utils import load_pickle
 from graph import generate_quotient_graph, generate_graphs
-from torch_geometric.nn import GCNConv
+from torch_geometric.nn import GCNConv, GraphNorm
 
 class nconv(nn.Module):
     def __init__(self):
@@ -320,9 +320,10 @@ def nt_xent_loss(out_1, out_2, temperature):
 
 
 class Geometric_Encoder(nn.Module):
-    def __init__(self, temperature, num_features):
+    def __init__(self, temperature, num_features, batch_norm):
         super().__init__()
         self.temperature = temperature
+        self.batch_norm = batch_norm
         # MLP, hidden layer dim 320
         self.fc1 = torch.nn.Linear(num_features, 320)
         self.fc2 = torch.nn.Linear(320, 32)
@@ -332,8 +333,9 @@ class Geometric_Encoder(nn.Module):
         # 2-neighbour
         self.gcn1 = GCNConv(32, 32)
         self.gcn2 = GCNConv(32, 32)
-        self.gcn3 = GCNConv(32, 32)
-        # try adding a batchnorm 
+        # try adding a GraphNorm, not a batchnorm
+        self.graphnorm1 = GraphNorm(32)
+        self.graphnorm2 = GraphNorm(32)
         # try adding a final "projection layer"?? see SimCLR
         # InfoNCE loss space is different to representation space, so we avoid overfitting
         self.fc_proj = torch.nn.Linear(32, 32)
@@ -344,10 +346,10 @@ class Geometric_Encoder(nn.Module):
         x = self.fc2(x)
         x = F.relu(x)
         x = self.gcn1(x, graph)
+        x = self.graphnorm1(x)
         x = F.relu(x)
         x = self.gcn2(x, graph)
-        x = F.relu(x)
-        x = self.gcn3(x, graph)
+        x = self.graphnorm2(x)
         x = F.relu(x)
         x = self.fc3(x)
         x = F.relu(x)

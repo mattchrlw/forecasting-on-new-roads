@@ -163,8 +163,8 @@ def pre_evaluateModel(model, data_iter, Q1, Q2):
             nQ1, nQ2 = from_networkx(Q1_s).to(device), from_networkx(Q2_s).to(device)
 
             l = model.contrast(fQ1, fQ2, nQ1.edge_index, nQ2.edge_index)
-            l_sum += l.item() * P.BATCHSIZE
-            n += P.BATCHSIZE
+            l_sum += l.item() * P.SUBGRAPH_SIZE
+            n += P.SUBGRAPH_SIZE
         return l_sum / n
 
 def network_calls():
@@ -233,8 +233,8 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
             # loss = model.contrast(x[0].to(device))
             loss.backward()
             optimizer.step()
-            loss_sum += loss.item() * P.BATCHSIZE
-            n += P.BATCHSIZE
+            loss_sum += loss.item() * P.SUBGRAPH_SIZE
+            n += P.SUBGRAPH_SIZE
         train_loss = loss_sum / n
         val_loss = pre_evaluateModel(model, preval_iter, Q1, Q2)
         if val_loss < min_val_loss:

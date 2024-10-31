@@ -320,13 +320,14 @@ def nt_xent_loss(out_1, out_2, temperature):
 
 
 class Geometric_Encoder(nn.Module):
-    def __init__(self, temperature, num_features, batch_norm):
+    def __init__(self, temperature, num_features, graph_norm, hidden):
         super().__init__()
         self.temperature = temperature
-        self.batch_norm = batch_norm
+        self.graph_norm = graph_norm
+        self.hidden = hidden
         # MLP, hidden layer dim 320
-        self.fc1 = torch.nn.Linear(num_features, 320)
-        self.fc2 = torch.nn.Linear(320, 32)
+        self.fc1 = torch.nn.Linear(num_features, hidden)
+        self.fc2 = torch.nn.Linear(hidden, 32)
         self.fc3 = torch.nn.Linear(32, 32)
         # NOTE: to extend this, use PyTorch ModuleList
         # GCN for message passing
@@ -346,10 +347,12 @@ class Geometric_Encoder(nn.Module):
         x = self.fc2(x)
         x = F.relu(x)
         x = self.gcn1(x, graph)
-        x = self.graphnorm1(x)
+        if self.graph_norm:
+            x = self.graphnorm1(x)
         x = F.relu(x)
         x = self.gcn2(x, graph)
-        x = self.graphnorm2(x)
+        if self.graph_norm:
+            x = self.graphnorm2(x)
         x = F.relu(x)
         x = self.fc3(x)
         x = F.relu(x)

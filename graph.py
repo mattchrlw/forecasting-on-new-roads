@@ -28,9 +28,9 @@ def load_dataset(dataset='METRLA'):
     nodes = {}
 
     if dataset == 'METRLA':
-        filename = 'data/graph_sensor_locations.csv'
+        filename = '../METRLA/graph_sensor_locations.csv'
     elif dataset == 'PEMSBAY':
-        filename = 'data/graph_sensor_locations_bay.csv'
+        filename = '../PEMSBAY/graph_sensor_locations_bay.csv'
 
     with open(filename, newline='') as csvfile:
         reader = csv.reader(csvfile)

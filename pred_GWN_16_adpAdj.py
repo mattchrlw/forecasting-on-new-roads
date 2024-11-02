@@ -168,7 +168,7 @@ def pre_evaluateModel(model, data_iter, Q1, Q2):
         return l_sum / n
 
 def network_calls():
-    Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic, hull = generate_quotient_graph(P.QUOTIENT_GRAPH_RADIUS)
+    Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic, hull = generate_quotient_graph(P.QUOTIENT_GRAPH_RADIUS, P.DATANAME)
     info = get_additional_info(hull)
     return
 
@@ -180,7 +180,7 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
     min_val_loss = np.inf
     optimizer = torch.optim.Adam(model.parameters(), lr=P.PRE_LEARN, weight_decay=P.weight_decay)
     s_time = datetime.now()
-    Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic, hull = generate_quotient_graph(P.QUOTIENT_GRAPH_RADIUS)
+    Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic, hull = generate_quotient_graph(P.QUOTIENT_GRAPH_RADIUS, P.DATANAME)
     info = get_additional_info(hull)
     Q_nearest, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, info, nearest=True)
     scaler = MinMaxScaler()

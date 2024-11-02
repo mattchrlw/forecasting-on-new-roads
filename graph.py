@@ -453,10 +453,7 @@ Define a subgraph. Take a 64 node deterministic BFS
 """
 def get_subgraph(G, root, length=64):
     edges = nx.bfs_edges(G, root)
-    if length != 0:
-        nodes = ([root] + [v for u, v in edges])[:length]
-    else:
-        nodes = [root] + [v for u, v in edges]
+    nodes = ([root] + [v for u, v in edges])[:length]
     return G.subgraph(nodes)
 
 if __name__ == "__main__":

@@ -29,10 +29,10 @@ def load_dataset(dataset='METRLA'):
 
     if dataset == 'METRLA':
         filename = 'data/graph_sensor_locations.csv'
-    else:
+    elif dataset == 'PEMSBAY':
         filename = 'data/graph_sensor_locations_bay.csv'
 
-    with open(dataset, newline='') as csvfile:
+    with open(filename, newline='') as csvfile:
         reader = csv.reader(csvfile)
         if dataset == 'METRLA':
             for i, row in enumerate(reader):

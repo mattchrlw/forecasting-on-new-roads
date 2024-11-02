@@ -20,21 +20,30 @@ from scipy import stats
 MODES = ['identity', 'rbf', 'rbf-osm', 'osm', 'osm-length', 'osm-length-speed']
 
 """
-Load the METR-LA dataset's locations.
+Load the traffic dataset's locations.
 
-Output: A dictionary, with each key being a METR-LA node index and the value being the (x, y) coordinate.
+Output: A dictionary, with each key being a traffic node index and the value being the (x, y) coordinate.
 """
-def load_metr_la():
-    metr_la_nodes = {}
+def load_dataset(dataset='METRLA'):
+    nodes = {}
 
-    with open('data/graph_sensor_locations.csv', newline='') as csvfile:
+    if dataset == 'METRLA':
+        filename = 'data/graph_sensor_locations.csv'
+    else:
+        filename = 'data/graph_sensor_locations_bay.csv'
+
+    with open(dataset, newline='') as csvfile:
         reader = csv.reader(csvfile)
-        for i, row in enumerate(reader):
-            if i == 0:
-                continue
-            metr_la_nodes[int(row[1])] = (float(row[3]), float(row[2]))
+        if dataset == 'METRLA':
+            for i, row in enumerate(reader):
+                if i == 0:
+                    continue
+                nodes[int(row[1])] = (float(row[3]), float(row[2]))
+        elif dataset == 'PEMSBAY':
+            for i, row in enumerate(reader):
+                nodes[int(row[0])] = (float(row[2]), float(row[1]))
 
-    return metr_la_nodes
+    return nodes
 
 """
 Load the METR-LA adjacency matrix.
@@ -384,15 +393,15 @@ clusters: clusters of OSM nodes based on traffic node
 gdf_nodes: GDF with node features
 gdf_edges: GDF with edge features
 """
-def generate_quotient_graph(radius=0.01):
-    metr_la = load_metr_la()
+def generate_quotient_graph(radius=0.01, dataset='data/graph_sensor_locations.csv'):
+    traffic_nodes = load_dataset(dataset)
     # {id: (x, y)}
     # generate more: 
-    # metr_la = load_metr_la()
+    # metr_la = load_dataset()
     # generate unseen nodes between???
     # more_metr_la = more(metr_la)
     #
-    traffic, gdf_nodes, gdf_edges, hull = load_osm(metr_la)
+    traffic, gdf_nodes, gdf_edges, hull = load_osm(traffic_nodes)
     nearest_node = find_matching(metr_la, traffic)
     Q, clusters = quotient_graph(traffic, nearest_node, gdf_nodes, radius)
     Q = relabel_graph(Q, nearest_node, clusters)
@@ -406,7 +415,7 @@ def generate_adjacency(mode):
     if mode not in MODES:
         raise Exception("invalid mode provided")
     
-    metr_la = load_metr_la()
+    metr_la = load_dataset()
 
     if mode == "identity":
         return np.identity(len(metr_la))
@@ -469,7 +478,7 @@ if __name__ == "__main__":
     print("completed generation of adjacency matrix for", args.mode, "in", end - start)
 
     # relabel to range
-    metr_la = {idx: v for idx, v in enumerate(load_metr_la().values())}
+    metr_la = {idx: v for idx, v in enumerate(load_dataset().values())}
 
     fig = plt.figure()
     plt.axis('off')

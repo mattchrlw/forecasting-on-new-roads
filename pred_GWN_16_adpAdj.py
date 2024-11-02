@@ -157,8 +157,8 @@ def pre_evaluateModel(model, data_iter, Q1, Q2):
     l_sum, n = 0.0, 0
     with torch.no_grad():
         for x in data_iter:
-            metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
-            Q1_s, Q2_s = get_subgraph(Q1, metr_la_keys[x], P.SUBGRAPH_SIZE), get_subgraph(Q2, metr_la_keys[x], P.SUBGRAPH_SIZE)
+            dataset_keys = {i: k for i, k in enumerate(load_dataset(P.DATANAME).keys())}
+            Q1_s, Q2_s = get_subgraph(Q1, dataset_keys[x], P.SUBGRAPH_SIZE), get_subgraph(Q2, dataset_keys[x], P.SUBGRAPH_SIZE)
             fQ1, fQ2 = feature_extract(Q1_s, P.FEATURES).float().to(device), feature_extract(Q2_s, P.FEATURES).float().to(device) # 64x4 tensor
             nQ1, nQ2 = from_networkx(Q1_s).to(device), from_networkx(Q2_s).to(device)
 
@@ -198,11 +198,11 @@ def pretrainModel(name, mode, pretrain_iter, preval_iter):
 
         # pretrain_iter = len(0, 7, 108, 34, ...) = 100
         for x in pretrain_iter:
-            metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
-            Q1_s, Q2_s = get_subgraph(Q1, metr_la_keys[x], P.SUBGRAPH_SIZE), get_subgraph(Q2, metr_la_keys[x], P.SUBGRAPH_SIZE)
+            dataset_keys = {i: k for i, k in enumerate(load_dataset(P.DATANAME).keys())}
+            Q1_s, Q2_s = get_subgraph(Q1, dataset_keys[x], P.SUBGRAPH_SIZE), get_subgraph(Q2, dataset_keys[x], P.SUBGRAPH_SIZE)
             # x = len([0 7 108 34 ...]) = 64
-            # metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
-            # indices = list(map(lambda k: metr_la_keys[k], x))
+            # dataset_keys = {i: k for i, k in enumerate(load_dataset().keys())}
+            # indices = list(map(lambda k: dataset_keys[k], x))
             # # [0 -> 734108]
             # Q1_s = Q1.subgraph(indices).copy()
             # Q2_s = Q2.subgraph(indices).copy()
@@ -277,10 +277,10 @@ def predictModel(model, data_iter, adj, embed):
     return YS_pred
 
 def graph_constructor_helper():
-    Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic, hull = generate_quotient_graph(P.QUOTIENT_GRAPH_RADIUS)
+    Q, nearest_node, clusters, gdf_nodes, gdf_edges, traffic, hull = generate_quotient_graph(P.QUOTIENT_GRAPH_RADIUS, P.DATANAME)
     info = get_additional_info(hull)
     Q1, _ = generate_graphs(Q, nearest_node, clusters, gdf_nodes, gdf_edges, info, nearest=True) # gives 2 networkx graphs 
-    metr_la_keys = {i: k for i, k in enumerate(load_metr_la().keys())}
+    dataset_keys = {i: k for i, k in enumerate(load_dataset(P.DATANAME).keys())}
     fQ1 = feature_extract(Q1, P.FEATURES).float().to(device)
     # Q1 -> fQ1: feature matrix
     # Q1 -> nQ1: edge index, GCN doesn't like adjacency matrices

@@ -402,7 +402,7 @@ def generate_quotient_graph(radius=0.01, dataset='data/graph_sensor_locations.cs
     # more_metr_la = more(metr_la)
     #
     traffic, gdf_nodes, gdf_edges, hull = load_osm(traffic_nodes)
-    nearest_node = find_matching(metr_la, traffic)
+    nearest_node = find_matching(traffic_nodes, traffic)
     Q, clusters = quotient_graph(traffic, nearest_node, gdf_nodes, radius)
     Q = relabel_graph(Q, nearest_node, clusters)
 

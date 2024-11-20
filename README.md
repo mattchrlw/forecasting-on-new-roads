@@ -1,6 +1,33 @@
-# Fork
+# Pre-training on spatial context in urban forecasting
 
-This is a fork of the original repository.
+![An illustration of the contrastive learning approach.](figures/contrastive.png)
+
+This is code prepared for my honours thesis for a Bachelor of Science (Computer Science) at UNSW, called *Pre-training on spatial context in urban forecasting*. It includes three contributions:
+
+- We introduce the notion of a *traffic quotient graph*, and apply this to Graph WaveNet as an alternative initialisation adjacency matrix, as well as a way to better understand traffic structure.
+  - Code for this can be found in `graph.py`.
+- We obtain *spatial context* through queries to OpenStreetMap.
+  - Code for this can be found in `graph.py`.
+- We propose a *geometric encoder* and use spatially gated addition to integrate this information into existing spatio-temporal graph forecasting models.
+  - Code for this can be found in `pred_GWN_16_adpAdj.py` as well as `GWN_SCPT_14_adpAdj.py`, as it was built on top of SCPT.
+
+![An illustration of the geometric encoder.](figures/geometric-encoder.png)
+
+Example code can be found under `gadi/`. A `requirements.txt` is provided for a virtual environment. This sequence of commands worked when setting up a venv:
+
+```sh
+module load python3/3.9.2 # relevant for gadi only
+python3 -m venv venv
+source venv/bin/activate
+python3 -m pip install torch torchvision torchaudio scipy pandas shapely osmnx scikit-learn torch_geometric tables matplotlib
+python3 -m pip install numpy==1.26.4
+```
+
+![An illustration of the pair generation using subgraph sampling.](figures/pair-generation.png)
+
+**Note:** if you are submitting this with a queue, you need to run it on a network-enabled queue for 1 epoch to cache OpenStreetMap data first. After cached, you can run for all future epochs.
+
+This is a fork of the original repository for "Traffic Forecasting on New Roads Using Spatial Contrastive Pre-Training (SCPT)". Below is the README for that repo.
 
 # Traffic Forecasting on New Roads Using Spatial Contrastive Pre-Training (SCPT)
 

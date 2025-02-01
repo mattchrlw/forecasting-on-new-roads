@@ -15,7 +15,7 @@ source /g/data/hn98/matt/venv/bin/activate
 
 pip list
 
-cd /g/data/hn98/matt/forecasting-on-new-roads-scpt
+cd /g/data/hn98/matt/forecasting-on-new-roads
 pwd
 nvidia-smi
 lscpu

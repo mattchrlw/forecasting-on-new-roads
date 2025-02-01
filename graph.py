@@ -31,6 +31,8 @@ def load_dataset(dataset='METRLA'):
         filename = '../METRLA/graph_sensor_locations.csv'
     elif dataset == 'PEMSBAY':
         filename = '../PEMSBAY/graph_sensor_locations_bay.csv'
+    elif dataset == 'PEMSD7M':
+        filename = '../PEMSD7M/graph_sensor_locations.csv'
 
     with open(filename, newline='') as csvfile:
         reader = csv.reader(csvfile)
@@ -42,6 +44,11 @@ def load_dataset(dataset='METRLA'):
         elif dataset == 'PEMSBAY':
             for i, row in enumerate(reader):
                 nodes[int(row[0])] = (float(row[2]), float(row[1]))
+        elif dataset == 'PEMSD7M':
+            for i, row in enumerate(reader):
+                if i == 0:
+                    continue
+                nodes[int(row[1])] = (float(row[6]), float(row[5]))
 
     return nodes
 

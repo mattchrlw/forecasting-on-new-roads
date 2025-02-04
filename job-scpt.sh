@@ -8,6 +8,8 @@
 #PBS -l mem=16GB
 #PBS -l storage=gdata/hn98
 
+# for network -q cpuvolta, ngpus=0, ncpus=1, mem=4GB
+
 module load python3/3.9.2
 module list
 
